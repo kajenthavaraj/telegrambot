@@ -20,3 +20,12 @@ print(generate_random_code())
 
 # Loop to update code for each user on Bubble every 3 minutes
 
+
+
+
+
+
+
+
+
+# Once user uses login code. add their telegram user_id to bubble for the AI to know
