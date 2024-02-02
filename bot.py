@@ -3,15 +3,15 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import time
+import requests
+import json
 
 from openai import OpenAI
 
 client = OpenAI(api_key="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")
 
 import database
-from llm_interface import get_openai_stream, get_claude_stream
-import requests
-import json
+import loginuser
 
 
 TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
@@ -74,6 +74,8 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     await update.message.reply_text("Thank you for sharing your phone number.")
 
+    await verify_number(update, context, phone_number)
+
 # If a user sends a text message instead of sharing contact with button
 # async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 #     user_id = str(update.message.from_user.id)
@@ -99,7 +101,7 @@ async def handle_phone_number_via_text(update: Update, context: ContextTypes.DEF
 
     if (stored_phone_number_status == False):
         # Use the verification and formatting function
-        is_valid, formatted_number_or_message = verify_and_format_number(text)
+        is_valid, formatted_number_or_message = gpt_verify_and_format_number(text)
 
         if is_valid:
             # Store the formatted phone number in Firestore
@@ -110,7 +112,7 @@ async def handle_phone_number_via_text(update: Update, context: ContextTypes.DEF
 
             await update.message.reply_text("Thank you for sharing your phone number.")
 
-            await handle_response(update, context)
+            await verify_number(update, context, formatted_number_or_message)
 
         else:
             # Custom keyboard to request contact, with an emoji to make the button more noticeable
@@ -128,7 +130,10 @@ Please try again or use the 'Share Phone Number' button.'''
             
             await update.message.reply_text(retry_message, reply_markup=reply_markup)
     else:
-        await handle_response(update, context)
+        if(database.get_verification_status(BOT_USERNAME, user_id) == "True"):
+            await handle_response(update, context)
+        else:
+            await verify_number(update, context, phone_number)
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -364,7 +369,7 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 #### Helper functions ####
-def verify_and_format_number(phone_number:str) -> [bool, str]:
+def gpt_verify_and_format_number(phone_number:str) -> [bool, str]:
     phone_verify_prompt = '''You're job is to verify and format if a phone number is correct.
 A phone number should follow the conventional code such where it's the country code followed by the area code and rest of the number.
 For example this is an example of a correct number: 16477667841
@@ -400,6 +405,46 @@ OUTPUT: '''
     else:
         return True, ai_response
 
+
+async def verify_number(update: Update, context: ContextTypes.DEFAULT_TYPE, phone_number: str) -> None:
+    user_id = str(update.message.from_user.id)
+
+    # Assuming loginuser.generate_random_number() and loginuser.send_verification_code() are defined elsewhere
+    verification_code = loginuser.generate_random_number()
+    loginuser.send_verification_code(phone_number, verification_code)
+
+    # Store the verification code in the context user data for later verification
+    context.user_data['expected_code'] = verification_code
+
+    # Prompt user for the verification code
+    await update.message.reply_text(f'Enter the verification code sent to {phone_number}')
+
+
+# This handler should be added to your Dispatcher to capture text messages
+async def handle_verification_response(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    text = update.message.text  # This is the text the user sends in response
+    user_id = str(update.message.from_user.id)
+
+    print()
+    print()
+    print("USER ENTERED: ")
+    print(text)
+    print()
+
+    # Retrieve the expected code from the context user data
+    expected_code = context.user_data.get('expected_code')
+
+    if text and expected_code:
+        if str(text) == str(expected_code):
+            print("VALID CODE")
+            # Verification success, proceed to next step
+            await handle_response(update, context)  # Ensure this function is defined to handle the next steps
+        else:
+            # Handle invalid code: ask to try again or enter a different number
+            await update.message.reply_text("Invalid code. Please try again or enter a different number.")
+    else:
+        # If there's no expected code in context, it might be an unexpected message or state
+        handle_response(update, context)
 
 
 
