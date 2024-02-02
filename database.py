@@ -30,7 +30,6 @@ def create_influencer_collection(influencer_id, influencer_name):
 # Example usage
 # create_influencer_collection(influencer_id='veronicaavluvaibot', influencer_name='Veronica Avluv')
 
-
 # Function to add user to an influencers subscriptions
 def add_user_to_influencer_subscription(influencer_id, user_id):
     db = init_database()
@@ -112,3 +111,43 @@ def get_user_chat_history(influencer_id, user_id):
 # else:
 #     chat_history_str = '\n'.join(f"{chat['role']}: {chat['content']}" for chat in chat_history)
 #     print(chat_history_str)
+
+
+def store_user_phone_number(influencer_id, user_id, phone_number):
+    db = init_database()
+    subscriptions_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
+    
+    # Update the document with the user's phone number, creating the document if it does not exist
+    subscriptions_ref.set({'phone_number': phone_number}, merge=True)
+    print(f"Stored phone number {phone_number} for user {user_id} under influencer {influencer_id}.")
+
+# Example usage
+# store_user_phone_number('veronicaavluvaibot', 'user12345', '6477667841')
+
+
+
+def phone_number_status(influencer_id, user_id):
+    db = init_database()
+    
+    # Reference to the user's subscription document
+    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
+    
+    # Attempt to get the document
+    user_subscription_doc = user_subscription_ref.get()
+    
+    # Check if the document exists and if the phone_number field is filled
+    if user_subscription_doc.exists:
+        user_data = user_subscription_doc.to_dict()
+        if 'phone_number' in user_data and user_data['phone_number']:
+            return True, user_data['phone_number']  # Phone number exists and is not empty
+        else:
+            return False, None  # Phone number field does not exist or is empty
+    else:
+        return False, None  # Document does not exist
+
+# Example usage:
+# has_phone, phone_number = phone_number_status('veronicaavluvaibot', 'user12345')
+# if has_phone:
+#     print(f"User's phone number is {phone_number}.")
+# else:
+#     print("User's phone number is not available.")
