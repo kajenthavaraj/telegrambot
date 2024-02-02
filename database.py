@@ -151,3 +151,39 @@ def phone_number_status(influencer_id, user_id):
 #     print(f"User's phone number is {phone_number}.")
 # else:
 #     print("User's phone number is not available.")
+    
+
+def update_verification_status(influencer_id, user_id, status):
+    db = init_database()
+    # Reference to the user's subscription document
+    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
+    
+    # Update the document with the verification status
+    user_subscription_ref.update({
+        'number_verified': status
+    })
+    print(f"Updated verification status to {status} for user {user_id} under influencer {influencer_id}.")
+
+# Example usage:
+# update_verification_status('veronicaavluvaibot', 'user12345', "True")
+
+
+
+def get_verification_status(influencer_id, user_id):
+    db = init_database()
+    # Reference to the user's subscription document
+    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
+    
+    # Get the current document
+    doc = user_subscription_ref.get()
+    if doc.exists:
+        # Retrieve the verification status, default to False if not set
+        verification_status = doc.to_dict().get('number_verified', False)
+        return verification_status
+    else:
+        print(f"Document for user {user_id} under influencer {influencer_id} does not exist.")
+        return False  # Document does not exist, hence verification status is False
+
+# Example usage:
+# status = get_verification_status('veronicaavluvaibot', 'user12345')
+# print(status)
