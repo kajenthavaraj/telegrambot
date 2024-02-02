@@ -1,5 +1,6 @@
 from typing import Final
-from telegram import Update
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import time
 
@@ -16,8 +17,6 @@ import json
 TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
 BOT_USERNAME: Final = '@veronicaavluvaibot'
 
-chat_history = {}
-
 
 ##### Commands #####
 '''
@@ -26,15 +25,110 @@ help - provides help for Veronica AI
 callme - Have Veronica AI call you
 '''
 
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_first_name = update.message.from_user.first_name
-    await update.message.reply_text(f'''Hey {user_first_name}, I'm excited to start talking to you. 
+# async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+#     user_first_name = update.message.from_user.first_name
+#     message_text = f'''Hey {user_first_name}, I'm excited to start talking to you.
 
-Before we can start make an account with the InfluencerAI app below so that I can also call you.
-https://app.tryinfluencerai.com/veronicaavluv
-                                    
-Enter the login code you recieve so I can connect to your account.''')
+# Before we can start, please share your phone number so we can enhance our communication.
+
+# Click the button below to share your phone number.'''
     
+#     # Define a custom keyboard with a button to share the phone number
+#     contact_keyboard = [[KeyboardButton("Share Phone Number", request_contact=True)]]
+#     reply_markup = ReplyKeyboardMarkup(contact_keyboard, one_time_keyboard=True)
+
+#     # Send the message with the custom keyboard
+#     await context.bot.send_message(chat_id=update.effective_chat.id,
+#                                    text=message_text,
+#                                    reply_markup=reply_markup)
+from telegram import ReplyKeyboardMarkup, KeyboardButton
+
+
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = str(update.message.from_user.id)
+    influencer_id = BOT_USERNAME
+
+    # Check if user is subscribed and add them if not
+    database.add_user_to_influencer_subscription(influencer_id, user_id)
+
+    user_first_name = update.message.from_user.first_name
+    message_text = f'''Hey {user_first_name}, I'm excited to start talking to you. 
+    
+Please share your phone number to continue. Press the button below.'''
+    
+    # Custom keyboard to request contact, with an emoji to make the button more noticeable
+    keyboard = [[KeyboardButton("📞 Share Phone Number", request_contact=True)]]
+    reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+    
+    await update.message.reply_text(message_text, reply_markup=reply_markup)
+
+
+async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = str(update.message.from_user.id)
+    phone_number = update.message.contact.phone_number
+
+    # Store the user's phone number in Firestore
+    database.store_user_phone_number(BOT_USERNAME, user_id, phone_number)
+    
+    database.add_chat_to_user_history(BOT_USERNAME, user_id, 'assistant', 'Influencer: ' + "Thank you for sharing your phone number.")
+
+    await update.message.reply_text("Thank you for sharing your phone number.")
+
+# If a user sends a text message instead of sharing contact with button
+# async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+#     user_id = str(update.message.from_user.id)
+
+#     stored_phone_number, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
+
+#     if stored_phone_number == False:
+#         # If we're awaiting a phone number, prompt the user again
+#         await start_command(update, context)
+#     else:
+#         # Handle regular text message
+#         # Your code to handle normal text messages here...
+        
+#         pass
+
+
+async def handle_phone_number_via_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = str(update.message.from_user.id)
+    text = update.message.text.strip()
+
+    stored_phone_number_status, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
+    print(stored_phone_number_status)
+
+    if (stored_phone_number_status == False):
+        # Use the verification and formatting function
+        is_valid, formatted_number_or_message = verify_and_format_number(text)
+
+        if is_valid:
+            # Store the formatted phone number in Firestore
+            database.store_user_phone_number(BOT_USERNAME, user_id, formatted_number_or_message)
+
+            # Inform the user
+            database.add_chat_to_user_history(BOT_USERNAME, user_id, 'assistant', 'Influencer: ' + "Thank you for sharing your phone number.")
+
+            await update.message.reply_text("Thank you for sharing your phone number.")
+
+            await handle_response(update, context)
+
+        else:
+            # Custom keyboard to request contact, with an emoji to make the button more noticeable
+            keyboard = [[KeyboardButton("📞 Share Phone Number", request_contact=True)]]
+            reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+
+            # Ask the user to try again or use the button
+            retry_message = "The entered number seems invalid."
+            if formatted_number_or_message == "missing area code":
+                retry_message += " It seems like the country code is missing."
+            
+            retry_message += '''
+
+Please try again or use the 'Share Phone Number' button.'''
+            
+            await update.message.reply_text(retry_message, reply_markup=reply_markup)
+    else:
+        await handle_response(update, context)
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -52,7 +146,6 @@ async def error(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 # Maybe have "account info - give status on what's in the account" command that sends all the account info (number of credits, etc.)
-
 
 
 def place_call(phone_number, agent_id, prospect_name, prospect_email, user_id, credits_left, credits_per_minute, subscription_id, fan_description):
@@ -241,12 +334,9 @@ Influencer: '''
 
 async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = str(update.message.from_user.id)
-    text = update.message.text
-
     influencer_id = BOT_USERNAME
     
-    # Check if user is subscribed and add them if not
-    database.add_user_to_influencer_subscription(influencer_id, user_id)
+    text = update.message.text
 
     # Add the current message to the user's chat history
     database.add_chat_to_user_history(influencer_id, user_id, 'user', 'Fan: ' + text)
@@ -273,6 +363,46 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 #######################################################################################################################################
 
 
+#### Helper functions ####
+def verify_and_format_number(phone_number:str) -> [bool, str]:
+    phone_verify_prompt = '''You're job is to verify and format if a phone number is correct.
+A phone number should follow the conventional code such where it's the country code followed by the area code and rest of the number.
+For example this is an example of a correct number: 16477667841
+And this is an example of a wrong number: 164776678
+
+If number is valid but is in the wrong format, reformat it and return it back. If a number is not valid, then return back INVALID. Do not include "OUTPUT" in your actual message.
+These are some examples:
+Input:16477667
+Output: INVALID
+
+Input: 6477667841
+Output: MISSING COUNTRY CODE
+
+Input:1416-933-221
+Output: 16477667841'''
+
+    phone_input_prompt = f'''Phone number: {phone_number}
+OUTPUT: '''
+
+    messages = [{"role" : "system", "content" : phone_verify_prompt}]
+    messages.append({"role": "user", "content": phone_input_prompt})
+
+    ai_response = ""    
+    for res in call_openai_stream_gpt4_turbo(messages):
+        ai_response += res
+    
+    print(ai_response)
+
+    if("invalid" in ai_response.lower()):
+        return False, None
+    elif("missing" in ai_response.lower()):
+        return False, "missing area code"
+    else:
+        return True, ai_response
+
+
+
+
 def main():
 
     # Get the dispatcher to register handlers
@@ -284,6 +414,9 @@ def main():
     dp.add_handler(CommandHandler("callme", callme))
 
     # Handle non-command messages
+    dp.add_handler(MessageHandler(filters.CONTACT, handle_contact))
+    dp.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_phone_number_via_text))
+
     dp.add_handler(MessageHandler(filters.TEXT, handle_response))
 
 

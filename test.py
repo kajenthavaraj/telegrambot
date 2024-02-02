@@ -1,17 +1,18 @@
+
 from openai import OpenAI
 
-client = OpenAI(api_key="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",
-api_key="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")
+client = OpenAI(api_key="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")
 import time
 
-def call_openai_stream_gpt3(messages):
+
+def call_openai_stream_gpt4_turbo(messages):
     # openai.api_key = "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"
 
     ##print("STREAm CALL:" + str(messages))
 
     start = time.time()
     # a ChatCompletion request
-    response = client.chat.completions.create(model='gpt-3.5-turbo-0613',
+    response = client.chat.completions.create(model='gpt-4-0125-preview',
     messages=messages,
     temperature=0,
     stream=True)
@@ -27,22 +28,49 @@ def call_openai_stream_gpt3(messages):
 
     final_end = time.time()
 
-def create_response(chat_history: dict, text: str) -> str:
-
-    main_prompt = '''You are an AI chatbot named Veronica that made to engage and talk with fans. You are meant to be as conversational as possible and text them as if you were a real person.
-Try to continue the conversation with them and go into deep topics.'''
 
 
-    
-    messages = [{"role" : "system", "content" : main_prompt}]
-    
-    for chat in chat_history:
-        messages.append(chat)
+#### Helper functions ####
+def verify_and_format_number(phone_number:str) -> [bool, str]:
+    phone_verify_prompt = '''You're job is to verify and format if a phone number is correct.
+A phone number should follow the conventional code such where it's the country code followed by the area code and rest of the number.
+For example this is an example of a correct number: 16477667841
+And this is an example of a wrong number: 164776678
+
+If number is valid but is in the wrong format, reformat it and return it back. If a number is not valid, then return back INVALID. Do not include "OUTPUT" in your actual message.
+These are some examples:
+Input:16477667
+Output: INVALID
+
+Input: 6477667841
+Output: MISSING COUNTRY CODE
+
+Input:1416-933-221
+Output: 16477667841'''
+
+    phone_input_prompt = f'''Phone number: {phone_number}
+OUTPUT: '''
+
+    messages = [{"role" : "system", "content" : phone_verify_prompt}]
+    messages.append({"role": "user", "content": phone_input_prompt})
 
     ai_response = ""    
-    for res in call_openai_stream_gpt3(messages):
+    for res in call_openai_stream_gpt4_turbo(messages):
         ai_response += res
     
-    return ai_response
+    print(ai_response)
+
+    if("invalid" in ai_response.lower()):
+        return False, None
+    elif("missing" in ai_response.lower()):
+        return False, "missing area code"
+    else:
+        return True, ai_response
 
 
+
+status, reformatted_number = verify_and_format_number("+1 647-766-7841")
+if(status):
+    print(reformatted_number)
+else:
+    print("Invalid")

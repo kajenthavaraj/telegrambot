@@ -1,6 +1,17 @@
 import random
 import string
 
+# General Algo
+# 1.) Requests for user's number on Telegram
+# 2.) Search phone number on Bubble
+    # a.) If no number found:
+            # Send info to make an account
+    # b.) If number found:
+            # Send verification code using Twillio
+
+
+
+
 
 
 # Random code generator
