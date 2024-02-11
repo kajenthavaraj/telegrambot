@@ -3,12 +3,13 @@ import string
 from twilio.rest import Client
 
 # General Algo
-# 1.) Requests for user's number on Telegram
+# 1.) Requests for user's number on Telegram -> ONLY SHARE CONTACT
+        # a.) if enters number manually - then prompt them to share contact
 # 2.) Search phone number on Bubble
     # a.) If no number found:
             # Send info to make an account
     # b.) If number found:
-            # Send verification code using Twillio
+            # Log user in
 
 
 
