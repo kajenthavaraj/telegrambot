@@ -25,25 +25,6 @@ help - provides help for Veronica AI
 callme - Have Veronica AI call you
 '''
 
-# async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-#     user_first_name = update.message.from_user.first_name
-#     message_text = f'''Hey {user_first_name}, I'm excited to start talking to you.
-
-# Before we can start, please share your phone number so we can enhance our communication.
-
-# Click the button below to share your phone number.'''
-    
-#     # Define a custom keyboard with a button to share the phone number
-#     contact_keyboard = [[KeyboardButton("Share Phone Number", request_contact=True)]]
-#     reply_markup = ReplyKeyboardMarkup(contact_keyboard, one_time_keyboard=True)
-
-#     # Send the message with the custom keyboard
-#     await context.bot.send_message(chat_id=update.effective_chat.id,
-#                                    text=message_text,
-#                                    reply_markup=reply_markup)
-from telegram import ReplyKeyboardMarkup, KeyboardButton
-
-
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = str(update.message.from_user.id)
     influencer_id = BOT_USERNAME
@@ -415,10 +396,13 @@ async def verify_number(update: Update, context: ContextTypes.DEFAULT_TYPE, phon
 
     # Store the verification code in the context user data for later verification
     context.user_data['expected_code'] = verification_code
+    context.user_data['awaiting_verification'] = True
 
+    
     # Prompt user for the verification code
     await update.message.reply_text(f'Enter the verification code sent to {phone_number}')
-
+    
+    # await handle_verification_response(update, context)
 
 # This handler should be added to your Dispatcher to capture text messages
 async def handle_verification_response(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -430,6 +414,8 @@ async def handle_verification_response(update: Update, context: ContextTypes.DEF
     print("USER ENTERED: ")
     print(text)
     print()
+
+    print("EXPECTED CODE ", context.user_data.get('expected_code'))
 
     # Retrieve the expected code from the context user data
     expected_code = context.user_data.get('expected_code')
@@ -443,9 +429,23 @@ async def handle_verification_response(update: Update, context: ContextTypes.DEF
             # Handle invalid code: ask to try again or enter a different number
             await update.message.reply_text("Invalid code. Please try again or enter a different number.")
     else:
+        print("Going into response engine")
         # If there's no expected code in context, it might be an unexpected message or state
         handle_response(update, context)
 
+
+# Main message handler that decides what to do based on the user's context
+async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_data = context.user_data
+    text = update.message.text
+
+    # Check if we are awaiting a verification response
+    if (user_data.get('awaiting_verification') == True):
+        # Call the verification response handler
+        await handle_verification_response(update, context)
+    else:
+        # Handle other text messages
+        await handle_response(update, context)
 
 
 def main():
@@ -459,10 +459,21 @@ def main():
     dp.add_handler(CommandHandler("callme", callme))
 
     # Handle non-command messages
+    # dp.add_handler(MessageHandler(filters.CONTACT, handle_contact))
+    # dp.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_phone_number_via_text))
+
+    # dp.add_handler(MessageHandler(filters.TEXT, message_handler))
+
+    # dp.add_handler(MessageHandler(filters.TEXT, handle_response))
+
+    # Handle non-command messages
     dp.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     dp.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_phone_number_via_text))
 
-    dp.add_handler(MessageHandler(filters.TEXT, handle_response))
+    # This is your main text message handler
+    dp.add_handler(MessageHandler(filters.TEXT, message_handler))
+
+
 
 
     # Errors
