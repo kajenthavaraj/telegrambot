@@ -86,6 +86,45 @@ async def handle_phone_number_via_text(update: Update, context: ContextTypes.DEF
             
     await update.message.reply_text(retry_message, reply_markup=reply_markup)
 
+#     stored_phone_number_status, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
+#     print(stored_phone_number_status)
+
+#     if (stored_phone_number_status == False):
+#         # Use the verification and formatting function
+#         is_valid, formatted_number_or_message = gpt_verify_and_format_number(text)
+
+#         if is_valid:
+#             # Store the formatted phone number in Firestore
+#             database.store_user_phone_number(BOT_USERNAME, user_id, formatted_number_or_message)
+
+#             # Inform the user
+#             database.add_chat_to_user_history(BOT_USERNAME, user_id, 'assistant', 'Influencer: ' + "Thank you for sharing your phone number.")
+
+#             await update.message.reply_text("Thank you for sharing your phone number.")
+
+#             await verify_number(update, context, formatted_number_or_message)
+
+#         else:
+#             # Custom keyboard to request contact, with an emoji to make the button more noticeable
+#             keyboard = [[KeyboardButton("📞 Share Phone Number", request_contact=True)]]
+#             reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+
+#             # Ask the user to try again or use the button
+#             retry_message = "The entered number seems invalid."
+#             if formatted_number_or_message == "missing area code":
+#                 retry_message += " It seems like the country code is missing."
+            
+#             retry_message += '''
+
+# Please try again using the 'Share Phone Number' button below.'''
+            
+#             await update.message.reply_text(retry_message, reply_markup=reply_markup)
+#     else:
+#         if(database.get_verification_status(BOT_USERNAME, user_id) == "True"):
+#             await handle_response(update, context)
+#         else:
+#             await verify_number(update, context, phone_number)
+
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text('Hey how can I help you?')
@@ -320,6 +359,42 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 #### Helper functions ####
+def gpt_verify_and_format_number(phone_number:str) -> [bool, str]:
+    phone_verify_prompt = '''You're job is to verify and format if a phone number is correct.
+A phone number should follow the conventional code such where it's the country code followed by the area code and rest of the number.
+For example this is an example of a correct number: 16477667841
+And this is an example of a wrong number: 164776678
+
+If number is valid but is in the wrong format, reformat it and return it back. If a number is not valid, then return back INVALID. Do not include "OUTPUT" in your actual message.
+These are some examples:
+Input:16477667
+Output: INVALID
+
+Input: 6477667841
+Output: MISSING COUNTRY CODE
+
+Input:1416-933-221
+Output: 16477667841'''
+
+    phone_input_prompt = f'''Phone number: {phone_number}
+OUTPUT: '''
+
+    messages = [{"role" : "system", "content" : phone_verify_prompt}]
+    messages.append({"role": "user", "content": phone_input_prompt})
+
+    ai_response = ""    
+    for res in call_openai_stream_gpt4_turbo(messages):
+        ai_response += res
+    
+    print(ai_response)
+
+    if("invalid" in ai_response.lower()):
+        return False, None
+    elif("missing" in ai_response.lower()):
+        return False, "missing area code"
+    else:
+        return True, ai_response
+
 
 async def verify_number(update: Update, context: ContextTypes.DEFAULT_TYPE, phone_number: str) -> None:
     user_id = str(update.message.from_user.id)
@@ -336,7 +411,7 @@ async def verify_number(update: Update, context: ContextTypes.DEFAULT_TYPE, phon
     # Prompt user for the verification code
     await update.message.reply_text(f'Enter the verification code sent to {phone_number}')
     
-    await handle_verification_response(update, context)
+    # await handle_verification_response(update, context)
 
 # This handler should be added to your Dispatcher to capture text messages
 async def handle_verification_response(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -365,7 +440,7 @@ async def handle_verification_response(update: Update, context: ContextTypes.DEF
     else:
         print("Going into response engine")
         # If there's no expected code in context, it might be an unexpected message or state
-        await handle_response(update, context)
+        handle_response(update, context)
 
 
 # Main message handler that decides what to do based on the user's context
