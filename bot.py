@@ -1,16 +1,18 @@
 from typing import Final
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackContext
 import time
 import requests
 import json
+import re
 
 from openai import OpenAI
 
 client = OpenAI(api_key="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")
 
 import database
+import bubbledb
 import loginuser
 
 
@@ -44,8 +46,14 @@ Please share your phone number to continue. Press the button below.'''
     await update.message.reply_text(message_text, reply_markup=reply_markup)
 
 
-async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def handle_contact(update: Update, context: CallbackContext) -> None:
     user_id = str(update.message.from_user.id)
+
+    verification_status = database.get_verification_status(BOT_USERNAME, user_id)
+
+    if(verification_status == True):
+         await handle_response(update, context)
+
     phone_number = update.message.contact.phone_number
 
     # Store the user's phone number in Firestore
@@ -55,23 +63,23 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     await update.message.reply_text("Thank you for sharing your phone number.")
 
-    print("Running verify_number function")
-    await verify_number(update, context, phone_number)
+    # Send user the verification code
 
-# If a user sends a text message instead of sharing contact with button
-# async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-#     user_id = str(update.message.from_user.id)
+    # Assuming loginuser.generate_random_number() and loginuser.send_verification_code() are defined elsewhere
+    verification_code = loginuser.generate_random_number()
+    loginuser.send_verification_code(phone_number, verification_code)
 
-#     stored_phone_number, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
+    # Store the verification code in the context user data for later verification
+    context.user_data['expected_code'] = verification_code
 
-#     if stored_phone_number == False:
-#         # If we're awaiting a phone number, prompt the user again
-#         await start_command(update, context)
-#     else:
-#         # Handle regular text message
-#         # Your code to handle normal text messages here...
-        
-#         pass
+    database.update_verification_status(BOT_USERNAME, user_id, True)
+    
+    print("Sent verification code: ", verification_code)
+    
+    # Prompt user for the verification code
+    await update.message.reply_text(f'Please enter the verification code sent to {phone_number}')
+    
+    # await handle_verification_response(update, context)
 
 
 async def handle_phone_number_via_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -83,8 +91,72 @@ async def handle_phone_number_via_text(update: Update, context: ContextTypes.DEF
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
 
     retry_message = '''Please try again using the 'Share Phone Number' button below.'''
-            
+    
     await update.message.reply_text(retry_message, reply_markup=reply_markup)
+
+
+
+async def handle_verification_response(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    print("handle_verification_response invoked")
+    user_id = str(update.message.from_user.id)
+    
+    verification_status = database.get_verification_status(BOT_USERNAME, user_id)
+    if(verification_status == True):
+         await handle_response(update, context)
+         return
+    
+    text = update.message.text  # This should be the verification code the user recieved
+
+    print()
+    print()
+    print("USER ENTERED: ")
+    print(text)
+    print()
+
+    # Retrieve the expected code from the context user data
+    expected_code = context.user_data.get('expected_code')
+
+    print("EXPECTED CODE ", expected_code)
+
+    if text and expected_code:
+        if str(text) == str(expected_code):
+            await update.message.reply_text("Verification successful!")
+            database.update_verification_status(BOT_USERNAME, user_id, "True")
+            
+            has_phone, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
+            
+            if(has_phone):
+                unique_id = bubbledb.find_user(phone_number)
+
+                if(unique_id != None):
+                    database.add_bubble_unique_id(BOT_USERNAME, user_id, unique_id)
+                else:
+                    # Means the user didn't connect this phone number to their Bubble account
+                    pass
+
+                await handle_response(update, context)
+                return
+            else:
+                print("ERROR - how the fuck did we get here")
+
+        else:
+            # Handle invalid code: ask to try again or enter a different number
+            # Prompt the user to share their phone number again
+            contact_keyboard = KeyboardButton(text="Share my phone number", request_contact=True)
+            custom_keyboard = [[contact_keyboard]]
+            reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
+
+            await update.message.reply_text("Verification failed. Please share your phone number again.", reply_markup=reply_markup)
+
+    else:
+        print("STATE ERROR - handle_verification_response")
+        print("Going into response engine")
+        # If there's no expected code in context, it might be an unexpected message or state
+        await handle_response(update, context)
+
+
+
+
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -216,6 +288,13 @@ def decide_modes(chat_history):
     return "text"
 
 
+def split_messages(ai_response):
+
+    # Regular expression to match sentences ending with specific punctuation and followed by a space or end of string
+    reply_array = re.split(r'(?<=[.!?])\s+(?=[A-Z])', ai_response)
+    return reply_array
+
+
 def create_response(chat_history: dict, text: str, update: Update) -> str:
 
     user_first_name = update.message.from_user.first_name
@@ -278,8 +357,13 @@ Influencer: '''
     ai_response = ""    
     for res in call_openai_stream_gpt3(messages):
         ai_response += res
+
+    if("Influencer:" in ai_response):
+        print("Influencer: key word found in response, removing it")
+        ai_response = ai_response.replace("Influencer: ", "")
     
     return ai_response
+
 
 
 ################################################################
@@ -311,70 +395,24 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     chat_history_str = '\n'.join(f"{chat['content']}" for chat in chat_history)
     print(f"Current Chat History: \n {chat_history_str}")
 
-    await update.message.reply_text(ai_response)
+    reply_array = split_messages(ai_response)
+
+    for message_reply in reply_array:
+        await update.message.reply_text(message_reply)
 
 
 #######################################################################################################################################
 ###################################################### End of Response Engine #########################################################
 #######################################################################################################################################
 
-
-#### Helper functions ####
-
-async def verify_number(update: Update, context: ContextTypes.DEFAULT_TYPE, phone_number: str) -> None:
-    user_id = str(update.message.from_user.id)
-
-    # Assuming loginuser.generate_random_number() and loginuser.send_verification_code() are defined elsewhere
-    verification_code = loginuser.generate_random_number()
-    loginuser.send_verification_code(phone_number, verification_code)
-
-    # Store the verification code in the context user data for later verification
-    context.user_data['expected_code'] = verification_code
-    context.user_data['awaiting_verification'] = True
-
-    
-    # Prompt user for the verification code
-    await update.message.reply_text(f'Enter the verification code sent to {phone_number}')
-    
-    await handle_verification_response(update, context)
-
-# This handler should be added to your Dispatcher to capture text messages
-async def handle_verification_response(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    text = update.message.text  # This is the text the user sends in response
-    user_id = str(update.message.from_user.id)
-
-    print()
-    print()
-    print("USER ENTERED: ")
-    print(text)
-    print()
-
-    print("EXPECTED CODE ", context.user_data.get('expected_code'))
-
-    # Retrieve the expected code from the context user data
-    expected_code = context.user_data.get('expected_code')
-
-    if text and expected_code:
-        if str(text) == str(expected_code):
-            print("VALID CODE")
-            # Verification success, proceed to next step
-            await handle_response(update, context)  # Ensure this function is defined to handle the next steps
-        else:
-            # Handle invalid code: ask to try again or enter a different number
-            await update.message.reply_text("Invalid code. Please try again or enter a different number.")
-    else:
-        print("Going into response engine")
-        # If there's no expected code in context, it might be an unexpected message or state
-        await handle_response(update, context)
-
-
 # Main message handler that decides what to do based on the user's context
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_data = context.user_data
+    user_id = str(update.message.from_user.id)
     text = update.message.text
-
+    
     # Check if we are awaiting a verification response
-    if (user_data.get('awaiting_verification') == True):
+    if (database.get_verification_status(BOT_USERNAME, user_id) == True):
         # Call the verification response handler
         await handle_verification_response(update, context)
     else:
@@ -389,25 +427,15 @@ def main():
 
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start_command))
+    dp.add_handler(MessageHandler(filters.CONTACT, handle_contact))
+    dp.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_verification_response))
+    
     dp.add_handler(CommandHandler("help", help_command))
     dp.add_handler(CommandHandler("callme", callme))
 
     # Handle non-command messages
-    # dp.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-    # dp.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_phone_number_via_text))
-
-    # dp.add_handler(MessageHandler(filters.TEXT, message_handler))
-
-    # dp.add_handler(MessageHandler(filters.TEXT, handle_response))
-
-    # Handle non-command messages
-    dp.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-    dp.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_phone_number_via_text))
-
     # This is your main text message handler
     dp.add_handler(MessageHandler(filters.TEXT, message_handler))
-
-
 
 
     # Errors
