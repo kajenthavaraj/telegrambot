@@ -179,11 +179,35 @@ def get_verification_status(influencer_id, user_id):
     if doc.exists:
         # Retrieve the verification status, default to False if not set
         verification_status = doc.to_dict().get('number_verified', False)
-        return verification_status
+
+        if(verification_status == "True"):
+            return True
+        else:
+            return False
+
     else:
         print(f"Document for user {user_id} under influencer {influencer_id} does not exist.")
         return False  # Document does not exist, hence verification status is False
+    
+
 
 # Example usage:
 # status = get_verification_status('veronicaavluvaibot', 'user12345')
 # print(status)
+
+
+
+def add_bubble_unique_id(influencer_id, user_id, unique_id):
+    db = init_database()
+    # Reference to the specific subscription document of the user under the influencer
+    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
+    
+    # Update the document with the new bubble_user_unique_id field
+    user_subscription_ref.update({
+        'bubble_user_unique_id': unique_id
+    })
+    print(f"Added bubble_user_unique_id: {unique_id} for user {user_id} under influencer {influencer_id}.")
+
+
+# Example usage:
+# add_bubble_unique_id('veronicaavluvaibot', 'user12345', "aksjdfkasdkjskafjksdf")
