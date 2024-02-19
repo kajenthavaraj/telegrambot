@@ -19,7 +19,7 @@ import loginuser
 
 
 TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
-BOT_USERNAME: Final = '@veronicaavluvaibot'
+BOT_USERNAME: Final = "@veronicaavluvaibot"
 
 stripe.api_key = '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'
 
@@ -162,17 +162,16 @@ async def handle_verification_response(update: Update, context: ContextTypes.DEF
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text('Hey how can I help you?')
+    await update.message.reply_text("Hey how can I help you?")
 
 
 async def callme(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     place_call()
-    await update.message.reply_text('Im calling you, check your phone')
+    await update.message.reply_text("Im calling you, check your phone")
 
 
 async def error(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     print(f"Update {update} caused error {context.error}")
-
 
 
 # Maybe have "account info - give status on what's in the account" command that sends all the account info (number of credits, etc.)
@@ -192,8 +191,8 @@ def place_call(phone_number, agent_id, prospect_name, prospect_email, user_id, c
             "credits_left": credits_left,
             "credits_per_minute": credits_per_minute,
             "subscription_id": subscription_id,
-            "fan_description": fan_description
-        }
+            "fan_description": fan_description,
+        },
     }
 
     response = requests.post(url, headers=headers, data=json.dumps(data))
@@ -203,6 +202,7 @@ def place_call(phone_number, agent_id, prospect_name, prospect_email, user_id, c
     else:
         print("Error: " + response.text)
         return False
+
 
 # Example usage
 # status = place_call(
@@ -224,8 +224,8 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     text = update.message.text
 
     # Add the current message to the user's chat history
-    database.add_chat_to_user_history(influencer_id, user_id, 'user', 'Fan: ' + text)
-    
+    database.add_chat_to_user_history(influencer_id, user_id, "user", "Fan: " + text)
+
     # Retrieve the updated chat history
     chat_history = database.get_user_chat_history(influencer_id, user_id)
 
@@ -267,7 +267,6 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 def main():
-
     # Get the dispatcher to register handlers
     dp = Application.builder().token(TOKEN).build()
 
@@ -292,5 +291,5 @@ def main():
     dp.run_polling(poll_interval=3)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
