@@ -32,7 +32,7 @@ def load_generated_csv_faq(csv_files: List[str]):
 
     return answers
 
-def build_knowledge_base(faq_vectors):
+def build_knowledge_base(faq_vectors, index_name):
     OPENAI_API_KEY = "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"
     os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
@@ -44,7 +44,6 @@ def build_knowledge_base(faq_vectors):
     end = time.time()
     print("KB Base Population Time: ", end - start)
 
-    index_name = "faq_db"
     db.save_local(index_name)
 
     return FAISS.load_local(index_name, embeddings)
@@ -63,7 +62,7 @@ def retrieve_info(db, query, k):
 
 
 
-def create_answers_knowledge_base(gdrive_urls):
+def create_answers_knowledge_base(gdrive_urls, index_name):
     documents = []
     for url in gdrive_urls:
         # ####### Create Knowledge Base #######
@@ -74,12 +73,12 @@ def create_answers_knowledge_base(gdrive_urls):
         faq_vectors = load_generated_csv_faq([download_url])
         documents.extend(faq_vectors)
     
-    knowledge_base = build_knowledge_base(documents)
+    knowledge_base = build_knowledge_base(documents, index_name)
 
     return knowledge_base
 
 
-def create_qa_knowledge_base(gdrive_urls):
+def create_qa_knowledge_base(gdrive_urls, index_name):
     documents = []
     for url in gdrive_urls:
         # ####### Create Knowledge Base #######
@@ -90,15 +89,39 @@ def create_qa_knowledge_base(gdrive_urls):
         faq_vectors = load_qa_csv_faq([download_url])
         documents.extend(faq_vectors)
     
-    knowledge_base = build_knowledge_base(documents)
+    knowledge_base = build_knowledge_base(documents, index_name)
 
     return knowledge_base
 
 
-# Usage:
+def load_knowledge_base(index_name):
+    OPENAI_API_KEY = "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"
+    os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+    embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+    
+    try:
+        db = FAISS.load_local(index_name, embeddings)
+        return db
+    
+    except:
+        return False
 
-# gdrive_urls = ["https://docs.google.com/spreadsheets/d/1f4awYjjNY28nSd7v-niigCBkO7jI6HMagvX7Fa6_Seg/view?usp=sharing"]
-# knowledge_base = create_answers_knowledge_base(gdrive_urls)
 
-# knowledge_base_info = retrieve_info(knowledge_base, "milf", 3)
+
+
+# Build Knowledge Veronica Knowledge Base:
+gdrive_urls = ["https://docs.google.com/spreadsheets/d/1f4awYjjNY28nSd7v-niigCBkO7jI6HMagvX7Fa6_Seg/view?usp=sharing"]
+knowledge_base = create_answers_knowledge_base(gdrive_urls, "veronica_kb")
+
+
+# Build Knowledge Veronica Knowledge Base:
+gdrive_urls = ["https://docs.google.com/spreadsheets/d/1g4vhty-OIhHhaVgEFgcnWYx-MRxpcuul1eZEC7MjvdQ/edit?usp=sharing"]
+knowledge_base = create_answers_knowledge_base(gdrive_urls, "veronica_kb")
+
+
+# knowledge_base_info = retrieve_info(knowledge_base, "milk", 3)
 # print("knowledge_base_info: ", knowledge_base_info)
+
+# knowledge_base = load_knowledge_base("faq_db")
+# knowledge_base_info = retrieve_info(knowledge_base, "milk", 3)
+# print(knowledge_base_info)
