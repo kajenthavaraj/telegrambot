@@ -1,7 +1,7 @@
 from typing import Final
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackContext
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackContext, CallbackQueryHandler
 import time
 import requests
 import json
@@ -17,6 +17,7 @@ import vectordb
 import database
 import bubbledb
 import loginuser
+import paymentstest as payments
 
 
 TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
@@ -27,11 +28,12 @@ AGENT_ID = "veronica_avluv"
 
 stripe.api_key = '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'
 
-##### Commands #####
+##### Commands - need to add to bot father #####
 '''
 start - starts the bot
 help - provides help for Veronica AI
 callme - Have Veronica AI call you
+payments - Purchase minutes to use VeronicaAI
 '''
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -170,7 +172,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def callme(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = str(update.message.from_user.id)
-    
+
     has_phone, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
     user_first_name = update.message.from_user.first_name
 
@@ -227,7 +229,7 @@ def place_call(phone_number, prospect_name, prospect_email, unique_id, credits_l
 
 
 ################################################################
-####################### Chatbot Handler ##########################
+####################### Chatbot Handler ########################
 ################################################################
 
 async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -261,9 +263,6 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         asyncio.sleep(1)
 
 
-################################################################
-####################### Chatbot Agent ##########################
-################################################################
 
 
 # Main message handler that decides what to do based on the user's context
@@ -289,10 +288,13 @@ def main():
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start_command))
     dp.add_handler(MessageHandler(filters.CONTACT, handle_contact))
+
     dp.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_verification_response))
     
     dp.add_handler(CommandHandler("help", help_command))
     dp.add_handler(CommandHandler("callme", callme))
+    dp.add_handler(CommandHandler("payments", payments.purchase))
+    dp.add_handler(CallbackQueryHandler(payments.button))
 
     # Handle non-command messages
     # This is your main text message handler

@@ -13,6 +13,19 @@ from twilio.rest import Client
 
 
 
+
+# Random letter code generator
+def generate_random_code(length=9):
+    # Define the characters to choose from, in this case, lowercase letters
+    letters = 'abcdefghijklmnopqrstuvwxyz'
+    
+    # Generate a random 9-letter code as a string
+    random_code = ''.join(random.choice(letters) for i in range(length))
+    
+    return random_code
+
+
+
 # Random number generator
 def generate_random_number(length=6):
     # Define the characters to choose from, in this case, digits

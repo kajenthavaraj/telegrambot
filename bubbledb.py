@@ -48,7 +48,7 @@ def find_user(find_phone_number):
         return None
 
 # Example Usage:
-print(find_user("16477667841"))
+# print(find_user("16477667841"))
 
 
 # def get_user_data(user_unique_id):
