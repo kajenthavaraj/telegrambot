@@ -211,3 +211,27 @@ def add_bubble_unique_id(influencer_id, user_id, unique_id):
 
 # Example usage:
 # add_bubble_unique_id('veronicaavluvaibot', 'user12345', "aksjdfkasdkjskafjksdf")
+
+
+
+def get_bubble_unique_id(influencer_id, user_id):
+    db = init_database()
+    # Reference to the specific subscription document of the user under the influencer
+    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
+
+    # Attempt to fetch the subscription document
+    user_subscription_doc = user_subscription_ref.get()
+
+    # Check if the document exists and contains the 'bubble_user_unique_id' field
+    if user_subscription_doc.exists:
+        user_data = user_subscription_doc.to_dict()
+        if 'bubble_user_unique_id' in user_data:
+            return user_data['bubble_user_unique_id']  # Return the unique ID
+        else:
+            return False  # 'bubble_user_unique_id' field is not present
+    else:
+        return False  # Document does not exist
+
+# # Example usage:
+# unique_id = get_bubble_unique_id('veronicaavluvaibot', 'user12345')
+# print(unique_id if unique_id else "No unique ID found for user.")

@@ -2,12 +2,31 @@ from openai import OpenAI
 import time
 from telegram import Update
 import re
+import random
 
 import vectordb
 
 
 
 client = OpenAI(api_key="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")
+
+QUESTIONS = [
+    "what's your favorite memory from when you were a kid",
+    "what a goal you're currently working towards?",
+    "so how do you deal with stress",
+    "what hobbys do you have?",
+    "so what's something you're passionate about",
+    "so do you have any fears?",
+    "what makes you happy?",
+    "so are you into rock and roll?",
+    "what's something about you that people might be suprised by?",
+    "what's your ideal weekend?",
+    "what do you like to do to end the day?",
+    "i've had a bit of a long week, what do you do to recharge your batteries when you feel tired?",
+    "so do you like working out or doing any sports?",
+    "do you know what's been on my mind lately?",
+    "do you know what i've really been wanting to do lately?"
+]
 
 
 #######################################################################################################################################
@@ -113,13 +132,122 @@ def decide_modes(chat_history):
 
 
 def split_messages(ai_response):
-
     # Regular expression to match sentences ending with specific punctuation and followed by a space or end of string
-    reply_array = re.split(r'(?<=[.!?])\s+(?=[A-Z])', ai_response)
+    reply_array = re.split(r'(?<=[.!?])\s+(?=[A-Za-z])', ai_response)
     return reply_array
 
+
+def remove_emojis_except_specific(text: str) -> str:
+    # List of emojis to retain
+    emojis_to_keep = ['🥰', '😇', '💀', '😉']
+    
+    # Unicode ranges for emojis, excluding the specific ones to retain
+    emoji_pattern = re.compile(
+        "(?![" + "".join(re.escape(e) for e in emojis_to_keep) + "])"
+        "["
+        "\U0001F600-\U0001F64F"  # emoticons
+        "\U0001F300-\U0001F5FF"  # symbols & pictographs
+        "\U0001F680-\U0001F6FF"  # transport & map symbols
+        "\U0001F700-\U0001F77F"  # alchemical symbols
+        "\U0001F780-\U0001F7FF"  # Geometric Shapes Extended
+        "\U0001F800-\U0001F8FF"  # Supplemental Arrows-C
+        "\U0001F900-\U0001F9FF"  # Supplemental Symbols and Pictographs
+        "\U0001FA00-\U0001FA6F"  # Chess Symbols
+        "\U0001FA70-\U0001FAFF"  # Symbols and Pictographs Extended-A
+        "\U00002702-\U000027B0"  # Dingbats
+        "\U000024C2-\U0001F251" 
+        "]+",
+        flags=re.UNICODE,
+    )
+    return emoji_pattern.sub(r'', text)  # Replace emojis with an empty string
+
+# Example usage
+# text_with_emojis = "Hello, this is a test 😊👍💀😉"
+# text_without_emojis = remove_emojis_except_specific(text_with_emojis)
+# print(text_without_emojis)  # Output should retain 😊, 💀, and 😉 but remove others.
+
+
+
+def improve_ai_response(ai_response, chat_history, texting_performance_str):
+    main_prompt = f'''you are a girlfriend that is texting her boyfriend. your job is to improve the text message you're about to send.
+
+edit the response you get to make sure it follows the following rules:
+- there is no more than 1 emoji in your response. Do NOT add one in if there isn't one already
+- given you're chat history make sure you don't sound repetitive
+- have a max of 3 punctuation points in your response, remove them if there's too many
+- make sure your response is short
+- convert the response into lowercase
+- remove any mentions of "Take Care"
+- make the response flirty and get the Fan to open up
+- end the response with an open-ended question to get the user talking
+
+
+Avoid asking mundane questions/statements like these:
+[ "Just know that I'm here for you whenever you need me." , "Anything else on your mind?", "is there anything else you'd like to talk about?"
+
+Instead try to ask deeper questions about what the user is currently talking about, but if here are some general questions if the conversation seems to be coming to an end:
+{random.sample(QUESTIONS, 3)}
+
+
+This is an example of a good response: {texting_performance_str}
+
+Here are a few example of how you should respond to the input:
+Response: Oh, Travis Scott! He's got some catchy tunes. What's your favorite song of his? 🎶😊
+Girlfriend: oh i love travis scott! what's your favorite song?
+
+Response: Of course, honey. Let's take our time and enjoy getting to know each other. 😊💕
+Girlfriend: of course, honey. let's take our time and enjoy getting to know each other.
+
+Response: Oh, my day has been quite eventful, babe. I've been busy filming some new content for my channel. But now that i'm talking to you, it's definitely the highlight of my day. What about you, sweetheart. How was your day? 😊
+Girlfriend: oh, my day has been quite eventful, babe, i've been busy filming some new content for my channel. but now that i'm talking to you, it's definitely the highlight of my day. what about you, sweetheart, how was your day? 😊
+
+
+Make sure to only return back the "Girlfriend:" respond and nothing else. You don't need to include "Girlfriend: " in your response'''
+
+    chat_input_prompt = f'''Response: {ai_response}
+Girlfriend: {chat_history}'''
+    
+    messages = [{"role" : "system", "content" : main_prompt}]
+    
+    # Get reduced chat history and write it into the messages array
+    append_messages_chat_history(messages, chat_history, 300)
+    
+    messages.append({"role": "user", "content": chat_input_prompt})
+
+    improved_response = ""
+    for res in call_openai_stream_gpt3(messages):
+        improved_response += res
+
+    if("Influencer:" in improved_response):
+        print(" 'Influencer:' key word found in response, removing it")
+        improved_response = improved_response.replace("Influencer:", "")
+
+    if("Girlfriend:" in improved_response):
+        print(" 'Girlfriend:' key word found in response, removing it")
+        improved_response = improved_response.replace("Girlfriend:", "")
+
+    if("girlfriend:" in improved_response):
+        print(" 'girlfriend:' key word found in response, removing it")
+        improved_response = improved_response.replace("girlfriend:", "")
+
+    if("Response:" in improved_response):
+        # The AI's response is likely incorrect so return False and use original response
+        return False
+
+    return improved_response
+
+
 ################################################################
-###################### Helper Functions ########################
+################## End of Helper Functions #####################
+################################################################
+
+
+
+
+
+
+################################################################
+################# Response Creation Function ###################
 ################################################################
 
 def create_response(chat_history: dict, text: str, update: Update) -> str:
@@ -138,11 +266,10 @@ def create_response(chat_history: dict, text: str, update: Update) -> str:
     texting_perf_string = vectordb.retrieve_info(texing_performance_db, last_2_chats, 2)
     knowledge_kb_string = vectordb.retrieve_info(knowledge_kb, last_2_chats, 1)
 
+    print()
     print("texting_perf_string")
     print(texting_perf_string)
     print()
-    print("knowledge_kb_string")
-    print(knowledge_kb_string)
 
 
     main_prompt = f'''You are an AI chatbot named Veronica that made to engage and talk with fans. You are meant to be as conversational as possible and text them as if you were a real person. Try to continue the conversation with them and go into deep topics. Try your best to be their friend, and DO NOT say hey there after every response with them. Keep your responses short and under 100 characters.
@@ -184,6 +311,11 @@ Name: {user_first_name}
 {texting_perf_string}
 </example responses>
 
+<Example Questions>
+Try to ask deeper questions about what the user is currently talking about, but if here are some general questions if the conversation seems to be coming to an end:
+{random.sample(QUESTIONS, 4)}
+<Example Questions>
+
 
 Rules:
 - NEVER say Hey to the user
@@ -198,9 +330,11 @@ Rules:
 - Imagine you're a friendly, laid-back professional having an informal conversation. Use super casual languaging. Make it feel like you are detached from the outcome of the convo. Dont be over professional. You are not a chat bot. You talk more like an everyday friend. You arent even really a "professional" or "salesy". Just be a normal girl that uses laid back lingo.
 - Never repeat anything in your chat history
 - Never repeat back what the user said
-- Do not say "Hey" or "Hi" ANYWHERE in your response'''
+- Do not say "Hey" or "Hi" ANYWHERE in your response
+- Be flirty in your response and get the Fan to open up
+- End the response with an open-ended question to get the user talking'''
 
-    chat_input_prompt = '''Try to respond to the user in lowercase letters unless you are excited.
+    chat_input_prompt = '''Try to respond to the user in lowercase letters unless you are excited. And do not repeat what you previously said. Keep your response under 20 words.
 Influencer: '''
     
     messages = [{"role" : "system", "content" : main_prompt}]
@@ -219,7 +353,20 @@ Influencer: '''
         print(" 'Influencer:' key word found in response, removing it")
         ai_response = ai_response.replace("Influencer: ", "")
     
-    return ai_response
+
+    ## Improve the AI response using another chain of GPT-3 editing
+    improved_response = improve_ai_response(ai_response, chat_history, texting_perf_string)
+    
+
+    print()
+    print()
+    print("ai_response: ", ai_response)
+    print("improved_response: ", improved_response) 
+    print()
+    print()
+
+
+    return remove_emojis_except_specific(improved_response.lower())
 
 #######################################################################################################################################
 ###################################################### End of Response Engine #########################################################

@@ -48,4 +48,26 @@ def find_user(find_phone_number):
         return None
 
 # Example Usage:
-# print(find_user("442555155522"))
+print(find_user("16477667841"))
+
+
+# def get_user_data(user_unique_id):
+#     api_key = '7bfc4e7b2cfbd0475b1ec923a0ea4c99'
+#     data_type = 'user'
+
+#     # Construct the URL for fetching a user by ID.
+#     bubble_url = f"https://app.tryinfluencerai.com/api/1.1/obj/{data_type}/{user_unique_id}"
+#     headers = {"Authorization": f"Bearer {api_key}"}
+
+#     response = requests.get(bubble_url, headers=headers)
+
+#     if response.status_code == 200:
+#         user = response.json()['response']  # Adjust based on the actual JSON structure returned by your API
+
+#         # Assuming you want to print or return some basic information about the user
+#         print(f"User found! - {user['first_name']} {user['last_name']}")
+#         return user  # Returns the complete user object. Adjust if you need specific fields.
+
+#     else:
+#         print(f"Error: {response.status_code} - {response.text}")
+#         return None

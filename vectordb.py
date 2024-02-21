@@ -36,6 +36,7 @@ def load_qa_csv_faq(csv_urls: List[str]):
     for csv_url in csv_urls:
         # Send a GET request to the URL
         response = requests.get(csv_url)
+        # print(response.text)
         # Check if the request was successful
         response.raise_for_status()
 
@@ -108,6 +109,7 @@ def create_answers_knowledge_base(gdrive_urls, index_name):
         file_id = url.split('/d/')[1].split('/view')[0]
         # Construct the direct CSV download URL for Google Sheets
         download_url = f'https://docs.google.com/spreadsheets/d/{file_id}/export?format=csv'
+        print(download_url)
         faq_vectors = load_generated_csv_faq([download_url])
         documents.extend(faq_vectors)
     
@@ -121,10 +123,19 @@ def create_qa_knowledge_base(gdrive_urls, index_name):
     for url in gdrive_urls:
         # ####### Create Knowledge Base #######
         # Extract the file ID from the Google Drive URL
-        file_id = url.split('/d/')[1].split('/view')[0]
+        if("/view" in url):
+            file_id = url.split('/d/')[1].split('/view')[0]
+        elif("/edit" in url):
+            file_id = url.split('/d/')[1].split('/edit')[0]
+        else:
+            print("INCORRECT URL, must have /view or /edit inside the URL path")
+        
         # Construct the direct CSV download URL for Google Sheets
         download_url = f'https://docs.google.com/spreadsheets/d/{file_id}/export?format=csv'
+        print(download_url)
         faq_vectors = load_qa_csv_faq([download_url])
+        # print("faq_vectors")
+        # print(faq_vectors)
         documents.extend(faq_vectors)
     
     knowledge_base = build_knowledge_base(documents, index_name)
@@ -156,7 +167,7 @@ if __name__ == "__main__":
 
 
     # Build Texting Performance Base:
-    gdrive_urls = ["https://docs.google.com/spreadsheets/d/1BM8NdY1XPhVTBpavJVUdYa1E5mloGRKKVv2748U6OX0/edit?usp=sharing"]
+    gdrive_urls = ["https://docs.google.com/spreadsheets/d/1g4vhty-OIhHhaVgEFgcnWYx-MRxpcuul1eZEC7MjvdQ/view?usp=sharing"]
     knowledge_base = create_qa_knowledge_base(gdrive_urls, "texting_performance")
 
 

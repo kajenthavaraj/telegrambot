@@ -6,8 +6,9 @@ import time
 import requests
 import json
 import re
-import stripe
+import asyncio
 
+import stripe
 from openai import OpenAI
 
 import response_engine
@@ -20,6 +21,9 @@ import loginuser
 
 TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
 BOT_USERNAME: Final = "@veronicaavluvaibot"
+
+AGENT_ID = "veronica_avluv"
+
 
 stripe.api_key = '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'
 
@@ -160,14 +164,23 @@ async def handle_verification_response(update: Update, context: ContextTypes.DEF
 
 
 
-
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("Hey how can I help you?")
 
 
 async def callme(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    place_call()
-    await update.message.reply_text("Im calling you, check your phone")
+    user_id = str(update.message.from_user.id)
+    
+    has_phone, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
+    user_first_name = update.message.from_user.first_name
+
+    user_unique_id = database.get_bubble_unique_id(BOT_USERNAME, user_id)
+
+    if(has_phone == True):
+        place_call(phone_number, user_first_name, )
+        await update.message.reply_text("i'm calling you, check your phone")
+    else:
+        await update.message.reply_text("you need to connect your phone number in order for me to be able to call you")
 
 
 async def error(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -177,21 +190,21 @@ async def error(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 # Maybe have "account info - give status on what's in the account" command that sends all the account info (number of credits, etc.)
 
 
-def place_call(phone_number, agent_id, prospect_name, prospect_email, user_id, credits_left, credits_per_minute, subscription_id, fan_description):
+def place_call(phone_number, prospect_name, prospect_email, unique_id, credits_left, credits_per_minute, subscription_id, fan_description):
     url = "https://callfusion-0c6c4ca2c8e6.herokuapp.com/dispatch_demo_call"
     headers = {"Content-Type": "application/json"}
     data = {
         "phone_number": phone_number,
-        "agent_id": agent_id,
+        "agent_id": AGENT_ID,
         "agent_to_use": "emma_live",
         "prospect_details": {
             "name": prospect_name,
             "email": prospect_email,
-            "user_id": user_id,
+            "user_id": unique_id,
             "credits_left": credits_left,
             "credits_per_minute": credits_per_minute,
             "subscription_id": subscription_id,
-            "fan_description": fan_description,
+            "fan_description": fan_description
         },
     }
 
@@ -243,7 +256,9 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     reply_array = response_engine.split_messages(ai_response)
 
     for message_reply in reply_array:
+        print("message_reply: ", message_reply)
         await update.message.reply_text(message_reply)
+        asyncio.sleep(1)
 
 
 ################################################################
@@ -253,6 +268,7 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 # Main message handler that decides what to do based on the user's context
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    print("Called message handler")
     user_data = context.user_data
     user_id = str(update.message.from_user.id)
     text = update.message.text
