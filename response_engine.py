@@ -46,6 +46,21 @@ def parse_chat_history(original_chat_history):
     return parsed_chat_history
 
 
+def get_chat_history(chat_history, num, last_or_first="last"):
+    if last_or_first == "last":
+        # Retrieve the last 2 * num messages from chat_history
+        selected_messages = [msg["content"] for msg in chat_history[-2*num:]]
+    elif last_or_first == "first":
+        # Retrieve the first 2 * num messages from chat_history
+        selected_messages = [msg["content"] for msg in chat_history[:2*num]]
+    else:
+        raise ValueError("last_or_first should be either 'last' or 'first'")
+
+    # Convert the messages list to a single string with line breaks
+    return '\n'.join(selected_messages)
+
+
+
 def call_openai_stream_gpt3(messages):
     # openai.api_key = "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"
 
@@ -111,8 +126,23 @@ def create_response(chat_history: dict, text: str, update: Update) -> str:
 
     user_first_name = update.message.from_user.first_name
 
-    # Create vector db for texting performance:
-    # https://docs.google.com/spreadsheets/d/1g4vhty-OIhHhaVgEFgcnWYx-MRxpcuul1eZEC7MjvdQ/edit#gid=0
+    # Load Influencer's Knowledge base
+    knowledge_kb = vectordb.load_knowledge_base("veronica_kb")
+
+    # Load Texting Performance Base
+    texing_performance_db = vectordb.load_knowledge_base("texting_performance")
+
+
+    last_2_chats = get_chat_history(chat_history, 2, "last")
+
+    texting_perf_string = vectordb.retrieve_info(texing_performance_db, last_2_chats, 2)
+    knowledge_kb_string = vectordb.retrieve_info(knowledge_kb, last_2_chats, 1)
+
+    print("texting_perf_string")
+    print(texting_perf_string)
+    print()
+    print("knowledge_kb_string")
+    print(knowledge_kb_string)
 
 
     main_prompt = f'''You are an AI chatbot named Veronica that made to engage and talk with fans. You are meant to be as conversational as possible and text them as if you were a real person. Try to continue the conversation with them and go into deep topics. Try your best to be their friend, and DO NOT say hey there after every response with them. Keep your responses short and under 100 characters.
@@ -143,7 +173,18 @@ You are wearing silky pajamas
 The following is a description of the fan you are talking to:
 Name: {user_first_name}
 </fan description>
-    
+
+
+<Info on Veronica>
+{knowledge_kb_string}
+</Info on Veronica>
+
+
+<example responses>
+{texting_perf_string}
+</example responses>
+
+
 Rules:
 - NEVER say Hey to the user
 - ONLY use lowercase letters when responding
