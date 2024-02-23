@@ -83,7 +83,7 @@ def update_credits_in_bubble(user_id, credits):
 def calculate_credits(session):
     amount_paid = session.get('amount_total') / 100
     credits = amount_paid / 1.20
-    return credits  
+    return round(credits, 2)
 
 
 if __name__ == '__main__':
