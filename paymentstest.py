@@ -10,19 +10,13 @@ import stripe
 
 import openai
 
-openai.api_key = "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"
 # stripe.api_key = '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'
 stripe.api_key = 'sk_test_51IsqDJBo1ZNr3GjAvWVMXtJUnocMO3LsOBaZKJIwtKcAd6regW0OrOgLGrjldgvMmS3K6PW3q4rkTDIbWb3VCUm00072rgmWbe'
 
 TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
 BOTUSERNAME: Final = '@veronicaavluvaibot'
 
-'''
-start - starts the bot
-help - provides help for Veronica AI
-callme - Have Veronica AI call you
-purchase - purchase credits 
-'''
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Extract the start parameter if present
