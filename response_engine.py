@@ -386,6 +386,19 @@ Influencer: '''
     for res in call_openai_stream_gpt3(messages):
         ai_response += res
 
+    # Redo response generation if it contains "fan" - due to hallucination
+    if("fan:" in ai_response.lower()):
+        ai_response = ""
+        for res in call_openai_stream_gpt3(messages):
+            ai_response += res
+
+        # Check 1 more time (just in case)
+        if("fan:" in ai_response.lower()):
+            ai_response = ""
+            for res in call_openai_stream_gpt3(messages):
+                ai_response += res
+
+    
     if("Influencer:" in ai_response):
         print(" 'Influencer:' key word found in response, removing it")
         ai_response = ai_response.replace("Influencer: ", "")

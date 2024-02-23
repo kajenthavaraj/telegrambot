@@ -16,6 +16,7 @@ import vectordb
 
 import database
 import bubbledb
+import connectBubble
 import loginuser
 import paymentstest as payments
 
@@ -61,7 +62,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
         # set stage to awaiting_email
         context.user_data['current_stage'] = "awaiting_email"
-
 
         user_first_name = update.message.from_user.first_name
         message_text = f'''Hey {user_first_name}, welcome to VeronicaAI 💕!
@@ -178,6 +178,17 @@ async def handle_phone_number_via_text(update: Update, context: ContextTypes.DEF
     await update.message.reply_text(retry_message, reply_markup=reply_markup)
 
 
+def get_user_unique_id(update, context):
+    if 'user_unique_id' in context.user_data and context.user_data['user_unique_id']:
+        return context.user_data['user_unique_id']
+    else:
+        user_id = str(update.message.from_user.id)
+
+        unique_id = database.get_bubble_unique_id(BOT_USERNAME, user_id)
+        
+        context.user_data['user_unique_id'] = unique_id
+
+
 
 async def handle_verification_response(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     print("handle_verification_response invoked")
@@ -218,13 +229,34 @@ Enter /help if you run into any issues''', reply_markup=ReplyKeyboardRemove())
             has_phone, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
             
             if(has_phone):
-                unique_id = bubbledb.find_user(phone_number)
+                user_unique_id = connectBubble.find_user(phone_number)
+                
+                # Handle no user being found - must create new user
+                if(user_unique_id == False):
+                    print("Creating new user in Bubble - user phone number not found")
+                    email_status, email = database.user_email_status(BOT_USERNAME, user_id)
+                    first_name = update.message.from_user.first_name
 
-                if(unique_id != None):
-                    database.add_bubble_unique_id(BOT_USERNAME, user_id, unique_id)
+                    # Create user in Bubble database
+                    user_unique_id = connectBubble.create_user(email, phone_number, first_name)
+                    context.user_data['user_unique_id'] = user_unique_id
+                    
+                    # Add unique id to Bubble
+                    database.add_bubble_unique_id(BOT_USERNAME, user_id, user_unique_id)
+
+                    # Create and add subscription
+                    database.add_subscription_id(BOT_USERNAME, user_id, user_unique_id)
                 else:
-                    # Means the user didn't connect this phone number to their Bubble account
-                    pass
+                    print("User found ", user_unique_id)
+                    context.user_data['user_unique_id'] = user_unique_id
+                    
+                    # Means user with this number already exists in the database.
+                    # Store retrieved user_unique_id in Firebase
+                    database.add_bubble_unique_id(BOT_USERNAME, user_id, user_unique_id)
+                    
+                    # Create and add subscription
+                    database.add_subscription_id(BOT_USERNAME, user_id, user_unique_id)                
+
                 
                 await update.message.reply_text(f"hey {update.message.from_user.first_name}, it's great to meet you")
 
@@ -234,7 +266,7 @@ Enter /help if you run into any issues''', reply_markup=ReplyKeyboardRemove())
                 # await handle_response(update, context)
                 return
             else:
-                print("ERROR - how the fuck did we get here")
+                print("ERROR - how the fuck did we get here. user got here without having a phone number in db.")
 
         else:
             # Handle invalid code: ask to try again or enter a different number
@@ -363,6 +395,8 @@ awaiting_verification
 response_engine
 '''
 
+
+
 # Main message handler that decides what to do based on the user's context
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     print("Called message handler")
@@ -396,10 +430,10 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 user_email_status, user_email = database.user_email_status(BOT_USERNAME, user_id)
                 
                 if(user_email_status == False):
-                    user_data["current_stage"] == "awaiting_email"
+                    user_data["current_stage"] = "awaiting_email"
                     await handle_email(update, context)
                 else:
-                    user_data["current_stage"] == "awaiting_contact"
+                    user_data["current_stage"] = "awaiting_contact"
                     if(update.message.contact == None):
                         await handle_phone_number_via_text(update, context)
                     
@@ -428,7 +462,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             await handle_verification_response(update, context)
         else:
             print("Going into response engine - no stage identified")
-            user_data["current_stage"] == "response_engine"
+            user_data["current_stage"] = "response_engine"
             await handle_response(update, context)
 
 
