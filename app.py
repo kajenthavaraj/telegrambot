@@ -48,7 +48,9 @@ def stripe_webhook():
         influencer_id = 'veronicaavluvaibot'  # Example; adjust as needed
 
         if telegram_user_id:
-            message = f"Thank you for your purchase! You have successfully bought {credits_purchased} credits for {amount_paid} {currency}."
+            credits_purchased = calculate_credits(session)
+
+            message = f"Thank you for your purchase! You have successfully bought {credits_purchased} credits"
             send_telegram_message(telegram_user_id, message)
         else:
             print("Telegram user ID not found in session metadata.")
@@ -59,6 +61,7 @@ def stripe_webhook():
         
         if bubble_unique_id:
             credits_purchased = calculate_credits(session)
+
             # Now you can update the credits in Bubble using this unique ID
             update_minutes_credits(bubble_unique_id, credits_purchased)
             # Send confirmation message to Telegram
