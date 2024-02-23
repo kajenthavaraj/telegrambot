@@ -1,0 +1,17 @@
+{
+    "jasmine_larsen" : {
+
+        "similarity_boost" : 0.85,
+        "stability" : 0.70
+
+    },
+
+    "ani_blackfox" : {
+
+        "similarity_boost" : 0.85,
+        "stability" : 0.4
+
+    }
+   
+
+}

@@ -7,7 +7,6 @@ import random
 import vectordb
 
 
-
 client = OpenAI(api_key="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")
 
 QUESTIONS = [
@@ -25,9 +24,12 @@ QUESTIONS = [
     "i've had a bit of a long week, what do you do to recharge your batteries when you feel tired?",
     "so do you like working out or doing any sports?",
     "do you know what's been on my mind lately?",
-    "do you know what i've really been wanting to do lately?"
+    "do you know what i've really been wanting to do lately?",
+    "What have you been up to?",
+    "What do you like to do for fun?",
+    "What do you like about me?",
+    "What are your goals and aspirations?"
 ]
-
 
 #######################################################################################################################################
 ######################################################### Response Engine #############################################################

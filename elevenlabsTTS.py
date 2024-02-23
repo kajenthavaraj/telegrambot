@@ -15,19 +15,24 @@ import base64
 import requests
 import json
 
+import CONSTANTS
+
+
+# sudo apt update
+# sudo apt install ffmpeg
+
+
+
+
 with open("voice_model_map.json", "r") as file:
     voice_model_map = json.load(file)
 
 with open("voice_settings_map.json", "r") as file:
     voice_settings_map = json.load(file)
 
-def get_audio_data(self, text : str, agent_id, chunk_size = 3004, model = "eleven_multilingual_v2"):
-    
+def get_audio_data(text : str, agent_id, chunk_size = 3004, model = "eleven_multilingual_v2"):
     text = text.strip(",")
-
     voice = voice_model_map[agent_id]
-
-    
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice}/stream"
 
     # print("similarity " + str(voice_settings_map.get(self.voicestatus.agent_id, {}).get("similarity_boost", 50)))
@@ -55,8 +60,8 @@ def get_audio_data(self, text : str, agent_id, chunk_size = 3004, model = "eleve
             # print(len(chunk))
             yield chunk
 
-def get_completed_audio(self, text, model="eleven_multilingual_v2"):
-    gen = get_audio_data(text, model=model)
+def get_completed_audio(text, model="eleven_multilingual_v2"):
+    gen = get_audio_data(text=text, agent_id=CONSTANTS.AGENT_ID, model=model)
     complete_audio_bytes = b""
     complete_audio = b""
 
