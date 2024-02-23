@@ -41,20 +41,20 @@ def stripe_webhook():
         abort(400)
 
     # Handle successful checkout session completion
-    if event['type'] == 'checkout.session.completed':
-        session = event['data']['object']
+    # if event['type'] == 'checkout.session.completed':
+    #     session = event['data']['object']
         
-        telegram_user_id = session.get('metadata', {}).get('telegram_user_id')
-        # Assume influencer_id is also part of the metadata or determine how to set it
-        influencer_id = 'veronicaavluvaibot'
-        credits_purchased = calculate_credits(session)
+    #     telegram_user_id = session.get('metadata', {}).get('telegram_user_id')
+    #     # Assume influencer_id is also part of the metadata or determine how to set it
+    #     influencer_id = 'veronicaavluvaibot'
+    #     credits_purchased = calculate_credits(session)
         
-        # Update credits in Firebase
-        update_chat_credits(influencer_id, telegram_user_id, credits_purchased)
+    #     # Update credits in Firebase
+    #     update_chat_credits(influencer_id, telegram_user_id, credits_purchased)
         
-        # Optionally, update credits in Bubble and notify the user via Telegram
-        # if update_credits_in_bubble(bubble_user_id, credits_purchased):
-        send_telegram_message(telegram_user_id, 'Thank you for your purchase! Your credits have been updated.')
+    #     # Optionally, update credits in Bubble and notify the user via Telegram
+    #     # if update_credits_in_bubble(bubble_user_id, credits_purchased):
+    #     send_telegram_message(telegram_user_id, 'Thank you for your purchase! Your credits have been updated.')
 
     print(f"Processed event id={event['id']} type={event['type']}")
     return '', 200
