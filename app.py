@@ -51,6 +51,7 @@ def stripe_webhook():
             # Notify user via Telegram
             send_telegram_message(telegram_user_id, 'Thank you for your purchase! Your credits have been updated.')
 
+    print(f"Processed event id={event['id']} type={event['type']}")
     return '', 200
 
 
