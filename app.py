@@ -2,6 +2,7 @@ from flask import Flask, request, abort
 import stripe
 import requests
 from typing import Final
+from database import update_chat_credits
 
 
 # Flask app setup
@@ -25,7 +26,7 @@ BUBBLE_API_TOKEN = "7bfc4e7b2cfbd0475b1ec923a0ea4c99"
 
 @app.route('/webhook', methods=['POST'])
 def stripe_webhook():
-    payload = request.get_data(as_text=True)  # Ensure you're getting the raw body for signature verification
+    payload = request.get_data(as_text=True)  
     sig_header = request.headers.get('Stripe-Signature')
     print(f"Received Stripe-Signature: {sig_header}")
 
@@ -43,15 +44,17 @@ def stripe_webhook():
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         
-        # Assuming 'metadata' contains 'telegram_user_id' and 'bubble_user_id'
         telegram_user_id = session.get('metadata', {}).get('telegram_user_id')
-        bubble_user_id = session.get('metadata', {}).get('bubble_user_id')
-        credits_purchased = calculate_credits(session)  # Implement this based on your pricing structure
+        # Assume influencer_id is also part of the metadata or determine how to set it
+        influencer_id = 'veronicaavluvaibot'
+        credits_purchased = calculate_credits(session)
         
-        # Update credits in Bubble
-        if update_credits_in_bubble(bubble_user_id, credits_purchased):
-            # Notify user via Telegram
-            send_telegram_message(telegram_user_id, 'Thank you for your purchase! Your credits have been updated.')
+        # Update credits in Firebase
+        update_chat_credits(influencer_id, telegram_user_id, credits_purchased)
+        
+        # Optionally, update credits in Bubble and notify the user via Telegram
+        # if update_credits_in_bubble(bubble_user_id, credits_purchased):
+        send_telegram_message(telegram_user_id, 'Thank you for your purchase! Your credits have been updated.')
 
     print(f"Processed event id={event['id']} type={event['type']}")
     return '', 200
