@@ -46,9 +46,16 @@ def stripe_webhook():
         # Assume you have telegram_user_id and influencer_id in metadata
         telegram_user_id = session.get('metadata').get('telegram_user_id')
         influencer_id = 'veronicaavluvaibot'  # Example; adjust as needed
+
+        if telegram_user_id:
+            message = f"Thank you for your purchase! You have successfully bought {credits_purchased} credits for {amount_paid} {currency}."
+            send_telegram_message(telegram_user_id, message)
+        else:
+            print("Telegram user ID not found in session metadata.")
         
         # Use get_bubble_unique_id to fetch the unique ID from your database
-        bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
+        #bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
+        bubble_unique_id = '1705089991492x506710590267403400'
         
         if bubble_unique_id:
             credits_purchased = calculate_credits(session)
@@ -59,6 +66,13 @@ def stripe_webhook():
         else:
             # Handle case where the unique Bubble ID couldn't be retrieved
             print("Failed to retrieve Bubble unique ID")
+        telegram_user_id = session.get('metadata', {}).get('telegram_user_id')
+        amount_paid = session.get('amount_total') / 100  # Amount is in cents
+        currency = session.get('currency').upper()
+        # Assuming credits are calculated or stored in a way accessible here
+        credits_purchased = calculate_credits(session)
+
+        
 
     return '', 200
 
