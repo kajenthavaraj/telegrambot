@@ -32,7 +32,19 @@ def create_influencer_collection(influencer_id, influencer_name):
 # create_influencer_collection(influencer_id='veronicaavluvaibot', influencer_name='Veronica Avluv')
 
 
+def check_user_exists(influencer_id, user_id):
+    db = init_database()  # Initialize the database connection
+    # Create a reference to the influencer's subscription collection and the specific user document
+    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
 
+    # Attempt to get the user document
+    user_subscription_doc = user_subscription_ref.get()
+
+    # Check if the document exists
+    if user_subscription_doc.exists:
+        return True  # The user exists in the database
+    else:
+        return False  # The user does not exist in the database
 
 
 # Function to add user to an influencers subscriptions

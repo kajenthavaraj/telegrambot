@@ -373,8 +373,8 @@ Output: INVALID
 Input: 6477667841
 Output: MISSING COUNTRY CODE
 
-Input:1416-933-221
-Output: 16477667841'''
+Input:+1-416-933-2213
+Output: 14169332213'''
 
     phone_input_prompt = f'''Phone number: {phone_number}
 OUTPUT: '''
