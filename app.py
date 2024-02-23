@@ -9,15 +9,19 @@ app = Flask(__name__)
 
 # Stripe setup
 stripe.api_key = "sk_test_51IsqDJBo1ZNr3GjAvWVMXtJUnocMO3LsOBaZKJIwtKcAd6regW0OrOgLGrjldgvMmS3K6PW3q4rkTDIbWb3VCUm00072rgmWbe"  
-endpoint_secret = 'whsec_...'  # Replace with your Stripe endpoint secret
+
+# endpoint_secret = 'whsec_TRS246LG1aQG1tsWzW2D0hYLFZYqWwja'  # this is the live version
+
+endpoint_secret = 'whsec_xtHqX4aEuAlh8kYH8Wcp90sQeENaUS52' # this is the test version
+
 
 # Telegram setup
-BOT_TOKEN = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"  # Replace with your Telegram Bot Token
+BOT_TOKEN = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"  
 BOT_USERNAME: Final = "@veronicaavluvaibot"
 
 # Bubble setup
-BUBBLE_API_URL = "https://app.tryinfluencerai.com/api/1.1/obj/"  # Adjust to your Bubble app's API endpoint
-BUBBLE_API_TOKEN = "7bfc4e7b2cfbd0475b1ec923a0ea4c99"  # Replace with your Bubble API token
+BUBBLE_API_URL = "https://app.tryinfluencerai.com/api/1.1/obj/"  
+BUBBLE_API_TOKEN = "7bfc4e7b2cfbd0475b1ec923a0ea4c99"  
 
 @app.route('/webhook', methods=['POST'])
 def stripe_webhook():
