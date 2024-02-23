@@ -25,8 +25,10 @@ BUBBLE_API_TOKEN = "7bfc4e7b2cfbd0475b1ec923a0ea4c99"
 
 @app.route('/webhook', methods=['POST'])
 def stripe_webhook():
-    payload = request.data
+    payload = request.get_data(as_text=True)  # Ensure you're getting the raw body for signature verification
     sig_header = request.headers.get('Stripe-Signature')
+    print(f"Received Stripe-Signature: {sig_header}")
+
 
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
