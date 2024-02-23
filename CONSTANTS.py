@@ -1,6 +1,5 @@
 from typing import Final
 
-
 BOT_USERNAME: Final = "@veronicaavluvaibot"
 
 AGENT_ID = "veronica_avluv"
