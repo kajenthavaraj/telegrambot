@@ -107,7 +107,7 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_response))
 
-    application.add_handler(CommandHandler("purchase", purchase))
+    application.add_handler(CommandHandler("payments", purchase))
     application.add_handler(CallbackQueryHandler(button))
 
     print("Bot is polling...")

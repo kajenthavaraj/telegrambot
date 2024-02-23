@@ -18,7 +18,7 @@ import database
 import bubbledb
 import connectBubble
 import loginuser
-import paymentstest as payments
+import paymentstest
 import voicenoteHandler
 
 
@@ -379,7 +379,7 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     # Send the chat history along with the AI response
     # chat_history_str = '\n'.join(f"{chat['content']}" for chat in chat_history)
     # print(f"Current Chat History: \n {chat_history_str}")
-    
+
     reply_array = chatbot_response_engine.split_messages(ai_response)
     reply_array = chatbot_response_engine.remove_questions(reply_array)
 
@@ -487,8 +487,8 @@ def main():
 
     dp.add_handler(CommandHandler("help", help_command))
     dp.add_handler(CommandHandler("callme", callme))
-    dp.add_handler(CommandHandler("payments", payments.purchase))
-    dp.add_handler(CallbackQueryHandler(payments.button))
+    dp.add_handler(CommandHandler("payments", paymentstest.purchase))
+    dp.add_handler(CallbackQueryHandler(paymentstest.button))
 
 
     # Errors
