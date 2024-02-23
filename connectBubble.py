@@ -7,6 +7,7 @@ import loginuser
 import CONSTANTS
 
 def extract_country_code_and_number(phone_number):
+    print("extract_country_code_and_number ", phone_number)
     try:
         # Parse the phone number without specifying a default region
         parsed_number = phonenumbers.parse(phone_number, None)
@@ -24,7 +25,7 @@ def extract_country_code_and_number(phone_number):
         return None
 
 # Example Usage:
-# phone_number = "+16477667841"
+# phone_number = "+14167009468"
 # print(extract_country_code_and_number(phone_number))
 
 
@@ -46,11 +47,16 @@ def extract_country_code_from_text(text):
 # Returns unique_id of use
 def find_user(phone_number_to_find):
 
+    print("phone_number_to_find inputted into find_user ", phone_number_to_find)
+
     if(phone_number_to_find == None):
         return False
 
     # Parse phone number entered
-    country_code, phone_number = extract_country_code_and_number("+1" + str(phone_number_to_find))
+    if("+" in phone_number_to_find):
+        country_code, phone_number = extract_country_code_and_number(str(phone_number_to_find))
+    else:
+        country_code, phone_number = extract_country_code_and_number("+" + str(phone_number_to_find))
 
     response = bubbledb.get_data_list("User", ["phone_number"], [phone_number], ["equals"])
     
@@ -123,7 +129,12 @@ def get_user_email(unique_id):
     
 def create_user(email, unparsed_phone_number, first_name):
     
-    area_code, phone_number = extract_country_code_and_number("+1" + str(unparsed_phone_number))
+    # Parse phone number entered
+    if("+" in unparsed_phone_number):
+        area_code, phone_number = extract_country_code_and_number(str(unparsed_phone_number))
+    else:
+        area_code, phone_number = extract_country_code_and_number("+" + str(unparsed_phone_number))
+
     area_code = "+" + str(area_code)
     
     # Create random password for user

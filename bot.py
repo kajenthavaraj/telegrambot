@@ -230,6 +230,7 @@ Enter /help if you run into any issues''', reply_markup=ReplyKeyboardRemove())
             has_phone, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
             
             if(has_phone):
+                print("phone_number: ", phone_number)
                 user_unique_id = connectBubble.find_user(phone_number)
                 
                 # Handle no user being found - must create new user
