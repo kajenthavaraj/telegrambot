@@ -2,8 +2,12 @@ from flask import Flask, request, abort
 import stripe
 import requests
 from typing import Final
+<<<<<<< HEAD
 from connectBubble import update_minutes_credits, update_chat_credits
 from database import get_bubble_unique_id
+=======
+# from database import update_chat_credits
+>>>>>>> heroku/master
 
 
 # Flask app setup
@@ -42,6 +46,7 @@ def stripe_webhook():
 
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
+<<<<<<< HEAD
         
         # Assume you have telegram_user_id and influencer_id in metadata
         telegram_user_id = session.get('metadata').get('telegram_user_id')
@@ -59,6 +64,19 @@ def stripe_webhook():
         else:
             # Handle case where the unique Bubble ID couldn't be retrieved
             print("Failed to retrieve Bubble unique ID")
+=======
+        telegram_user_id = session.get('metadata', {}).get('telegram_user_id')
+        amount_paid = session.get('amount_total') / 100  # Amount is in cents
+        currency = session.get('currency').upper()
+        # Assuming credits are calculated or stored in a way accessible here
+        credits_purchased = calculate_credits(session)
+
+        if telegram_user_id:
+            message = f"Thank you for your purchase! You have successfully bought {credits_purchased} credits for {amount_paid} {currency}."
+            send_telegram_message(telegram_user_id, message)
+        else:
+            print("Telegram user ID not found in session metadata.")
+>>>>>>> heroku/master
 
     return '', 200
 
