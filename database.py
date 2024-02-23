@@ -26,10 +26,14 @@ def create_influencer_collection(influencer_id, influencer_name):
     db = init_database()
     
     db.collection('influencers').document(influencer_id).set(influencer_data)
-    print(f"Influencer {influencer_name} with ID {influencer_id} has been added to the database.")
+    # print(f"Influencer {influencer_name} with ID {influencer_id} has been added to the database.")
 
 # Example usage
 # create_influencer_collection(influencer_id='veronicaavluvaibot', influencer_name='Veronica Avluv')
+
+
+
+
 
 # Function to add user to an influencers subscriptions
 def add_user_to_influencer_subscription(influencer_id, user_id):
@@ -49,7 +53,7 @@ def add_user_to_influencer_subscription(influencer_id, user_id):
         'subscribed_on': SERVER_TIMESTAMP,
         'chat_history': []  # Initialize an empty chat history
     })
-    print(f"User {user_id} has been added to the subscriptions of influencer {influencer_id}.")
+    # print(f"User {user_id} has been added to the subscriptions of influencer {influencer_id}.")
 
 # Example usage
 # add_user_to_influencer_subscription('veronicaavluvaibot', 'user12345')
@@ -102,7 +106,7 @@ def get_user_chat_history(influencer_id, user_id):
         #     print(f"Role: {chat['role']}, Content: {chat['content']}, Timestamp: {chat['timestamp']}")
         return chat_history
     else:
-        print(f"No subscription found for user {user_id} under influencer {influencer_id}.")
+        # print(f"No subscription found for user {user_id} under influencer {influencer_id}.")
         return None
 
 # Example usage
@@ -120,7 +124,7 @@ def store_user_phone_number(influencer_id, user_id, phone_number):
     
     # Update the document with the user's phone number, creating the document if it does not exist
     subscriptions_ref.set({'phone_number': phone_number}, merge=True)
-    print(f"Stored phone number {phone_number} for user {user_id} under influencer {influencer_id}.")
+    # print(f"Stored phone number {phone_number} for user {user_id} under influencer {influencer_id}.")
 
 # Example usage
 # store_user_phone_number('veronicaavluvaibot', 'user12345', '6477667841')
@@ -163,7 +167,7 @@ def update_verification_status(influencer_id, user_id, status):
     user_subscription_ref.update({
         'number_verified': status
     })
-    print(f"Updated verification status to {status} for user {user_id} under influencer {influencer_id}.")
+    # print(f"Updated verification status to {status} for user {user_id} under influencer {influencer_id}.")
 
 # Example usage:
 # update_verification_status('veronicaavluvaibot', 'user12345', "True")
@@ -207,7 +211,7 @@ def add_bubble_unique_id(influencer_id, user_id, unique_id):
     user_subscription_ref.update({
         'bubble_user_unique_id': unique_id
     })
-    print(f"Added bubble_user_unique_id: {unique_id} for user {user_id} under influencer {influencer_id}.")
+    # print(f"Added bubble_user_unique_id: {unique_id} for user {user_id} under influencer {influencer_id}.")
 
 
 # Example usage:
@@ -235,6 +239,49 @@ def get_bubble_unique_id(influencer_id, user_id):
 # # Example usage:
 # unique_id = get_bubble_unique_id('veronicaavluvaibot', 'user12345')
 # print(unique_id if unique_id else "No unique ID found for user.")
+
+
+
+
+def store_user_email(influencer_id, user_id, email):
+    db = init_database()
+    # Reference to the specific subscription document of the user under the influencer
+    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
+
+    # Update the document with the new bubble_user_unique_id field
+    user_subscription_ref.update({
+        'user_email': email,
+    })
+    # print(f"Stored email under for {user_id} under {influencer_id}")
+
+
+# Example usage:
+# store_user_email('veronicaavluvaibot', 'user12345', 'kajen@gmail.com')
+
+def user_email_status(influencer_id, user_id):
+    db = init_database()
+    
+    # Reference to the user's subscription document
+    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
+    
+    # Attempt to get the document
+    user_subscription_doc = user_subscription_ref.get()
+    
+    # Check if the document exists and if the user_email field is filled
+    if user_subscription_doc.exists:
+        user_data = user_subscription_doc.to_dict()
+        if 'user_email' in user_data and user_data['user_email']:
+            return True, user_data['user_email']  # Email exists and is not empty
+        else:
+            return False, None  # Email field does not exist or is empty
+    else:
+        return False, None  # Document does not exist
+
+# Example usage:
+# user_email_status('veronicaavluvaibot', 'user12345')
+
+
+
 
 
 
