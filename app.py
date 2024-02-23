@@ -39,16 +39,20 @@ def stripe_webhook():
         print(f"SignatureVerificationError: {e}")
         abort(400)
 
-    # Handle successful checkout session completion
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         telegram_user_id = session.get('metadata', {}).get('telegram_user_id')
-        
+        amount_paid = session.get('amount_total') / 100  # Amount is in cents
+        currency = session.get('currency').upper()
+        # Assuming credits are calculated or stored in a way accessible here
+        credits_purchased = calculate_credits(session)
+
         if telegram_user_id:
-            send_telegram_message(telegram_user_id, "Thank you for your purchase! Your credits have been updated.")
+            message = f"Thank you for your purchase! You have successfully bought {credits_purchased} credits for {amount_paid} {currency}."
+            send_telegram_message(telegram_user_id, message)
         else:
             print("Telegram user ID not found in session metadata.")
-    
+
     return '', 200
 
 
@@ -77,9 +81,10 @@ def update_credits_in_bubble(user_id, credits):
 
 
 def calculate_credits(session):
-    # Placeholder function to calculate credits based on session details
-    # Customize this based on your own logic
-    return 5  # Example static return, replace with your logic
+    # Placeholder implementation - replace with your logic
+    # Example: Assume 1 credit per dollar spent
+    amount_paid = session.get('amount_total') / 100
+    return amount_paid  # Assuming 1:1 ratio for simplicity
 
 
 if __name__ == '__main__':
