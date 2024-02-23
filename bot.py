@@ -1,5 +1,5 @@
 from typing import Final
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackContext, CallbackQueryHandler
 import time
@@ -8,7 +8,7 @@ import json
 import re
 import asyncio
 
-import stripe
+# import stripe
 from openai import OpenAI
 
 import response_engine
@@ -26,7 +26,7 @@ BOT_USERNAME: Final = "@veronicaavluvaibot"
 AGENT_ID = "veronica_avluv"
 
 
-stripe.api_key = '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'
+# stripe.api_key = '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'
 
 ##### Commands - need to add to bot father #####
 '''
@@ -36,28 +36,97 @@ callme - Have Veronica AI call you
 payments - Purchase minutes to use VeronicaAI
 '''
 
+
+# Telegram bot stages stored inside context.user_data['current_stage']
+'''
+awaiting_email
+awaiting_contact
+awaiting_verification
+response_engine
+'''
+
+
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = str(update.message.from_user.id)
     influencer_id = BOT_USERNAME
 
+    ############################################################
+    ############################################################
+    ############### Check if user already exists ###############
+    ############################################################
+    ############################################################
+
+
     # Check if user is subscribed and add them if not
     database.add_user_to_influencer_subscription(influencer_id, user_id)
 
+    # set stage to awaiting_email
+    context.user_data['current_stage'] = "awaiting_email"
+
+
     user_first_name = update.message.from_user.first_name
-    message_text = f'''Hey {user_first_name}, I'm excited to start talking to you. 
+    message_text = f'''Hey {user_first_name}, welcome to VeronicaAI 💕!
+
+I was created by Veronica Avluv and trained on everything you can know about her. I'm built to act, talk and sound just like she does.
+
+I can call you, text you, send voice notes, and send pics. 
+
+To get started I need your phone number and email in order to make your account.
+☐ Email
+☐ Phone number'''
     
-Please share your phone number to continue. Press the button below.'''
+    # # Custom keyboard to request contact, with an emoji to make the button more noticeable
+    # keyboard = [[KeyboardButton("📞 Share Phone Number", request_contact=True)]]
+    # reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
     
-    # Custom keyboard to request contact, with an emoji to make the button more noticeable
-    keyboard = [[KeyboardButton("📞 Share Phone Number", request_contact=True)]]
-    reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-    
-    await update.message.reply_text(message_text, reply_markup=reply_markup)
+    # await update.message.reply_text(message_text, reply_markup=reply_markup)
+
+    await update.message.reply_text(message_text)
+    await update.message.reply_text("Enter your email below:")
+
+
+# Function to handle email response
+async def handle_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_email = update.message.text  # Assuming the next message after start is the email
+    user_id = str(update.message.from_user.id)
+
+    # Validate the email format here (basic example)
+    if re.match(r"[^@]+@[^@]+\.(?!con$)[^@]+", user_email):
+        context.user_data['email'] = user_email  # Store the email in context.user_data for later use
+        context.user_data['awaiting_phone_number'] = True  # Indicate that the next step is to collect the phone number
+
+        # Store user email in database
+        database.store_user_email(BOT_USERNAME, user_id, user_email)
+        
+        # After email is received and validated, ask for the phone number
+        message_text = '''Thank you for sharing your email.
+☒ Email
+☐ Phone number
+
+Now, please share your phone number to continue. Press the button below.'''
+        
+        # Custom keyboard to request contact
+        keyboard = [[KeyboardButton("📞 Share Phone Number", request_contact=True)]]
+        reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+        
+        # Set stage at awaiting_contact since we need the user's contact for the phone number
+        context.user_data['current_stage'] = "awaiting_contact"
+
+        await update.message.reply_text(message_text, reply_markup=reply_markup)
+    else:
+        # Keep the stage at awaiting_email
+        context.user_data['current_stage'] = "awaiting_email"
+
+        # Handle invalid email format
+        await update.message.reply_text("It seems like the email you entered is invalid.")
+        await update.message.reply_text("Please enter your email again below:")
+
 
 
 async def handle_contact(update: Update, context: CallbackContext) -> None:
     user_id = str(update.message.from_user.id)
 
+    print("Finding verfication status")
     verification_status = database.get_verification_status(BOT_USERNAME, user_id)
 
     if(verification_status == True):
@@ -72,6 +141,10 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
 
     await update.message.reply_text("Thank you for sharing your phone number.")
 
+    # Set stage at awaiting_verification since we're waiting for the verification code
+    context.user_data['current_stage'] = "awaiting_verification"
+
+
     # Send user the verification code
 
     # Assuming loginuser.generate_random_number() and loginuser.send_verification_code() are defined elsewhere
@@ -84,7 +157,7 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
     database.update_verification_status(BOT_USERNAME, user_id, True)
     
     print("Sent verification code: ", verification_code)
-    
+
     # Prompt user for the verification code
     await update.message.reply_text(f'Please enter the verification code sent to {phone_number}')
     
@@ -130,7 +203,15 @@ async def handle_verification_response(update: Update, context: ContextTypes.DEF
 
     if text and expected_code:
         if str(text) == str(expected_code):
-            await update.message.reply_text("Verification successful!")
+            await update.message.reply_text('''Verification successful, you're ready to start using VeronicaAI!
+
+Enter /call_me if you want me to call the phone number you have with your account
+
+If you run into any issues enter /help''', reply_markup=ReplyKeyboardRemove())
+
+            # Set stage to response engine chatbot since user has entered email and phone number
+            context.user_data['current_stage'] = "response_engine"
+
             database.update_verification_status(BOT_USERNAME, user_id, "True")
             
             has_phone, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
@@ -152,9 +233,14 @@ async def handle_verification_response(update: Update, context: ContextTypes.DEF
         else:
             # Handle invalid code: ask to try again or enter a different number
             # Prompt the user to share their phone number again
-            contact_keyboard = KeyboardButton(text="Share my phone number", request_contact=True)
+            contact_keyboard = KeyboardButton(text="📞 Share Phone Number", request_contact=True)
             custom_keyboard = [[contact_keyboard]]
             reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
+            
+            context.user_data['awaiting_phone_number'] = True
+
+            # Set stage at awaiting_contact since we need to go back to the getting the user's contact stage
+            context.user_data['current_stage'] = "awaiting_contact"
 
             await update.message.reply_text("Verification failed. Please share your phone number again.", reply_markup=reply_markup)
     
@@ -162,6 +248,7 @@ async def handle_verification_response(update: Update, context: ContextTypes.DEF
         print("STATE ERROR - handle_verification_response")
         print("Going into response engine")
         # If there's no expected code in context, it might be an unexpected message or state
+        context.user_data['current_stage'] = "response_engine"
         await handle_response(update, context)
 
 
@@ -256,14 +343,20 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     # print(f"Current Chat History: \n {chat_history_str}")
 
     reply_array = response_engine.split_messages(ai_response)
+    reply_array = response_engine.remove_questions(reply_array)
 
     for message_reply in reply_array:
         print("message_reply: ", message_reply)
         await update.message.reply_text(message_reply)
-        asyncio.sleep(1)
+        # asyncio.sleep(1)
 
 
-
+'''
+awaiting_email
+awaiting_contact
+awaiting_verification
+response_engine
+'''
 
 # Main message handler that decides what to do based on the user's context
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -272,13 +365,65 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     user_id = str(update.message.from_user.id)
     text = update.message.text
     
-    # Check if we are awaiting a verification response
-    if (database.get_verification_status(BOT_USERNAME, user_id) == True):
-        # Call the verification response handler
-        await handle_verification_response(update, context)
+    
+    # Check if user_data exists - if false it's likely due to the code being refreshed
+    if(user_data is None or ('current_stage' not in context.user_data)):
+        print("No user data")
+
+        verification_status = database.get_verification_status(BOT_USERNAME, user_id)
+        
+
+        ########### Define current stage ###########
+        
+        if(verification_status == True):
+            # Go into chatbot response engine if phone number is already verified
+            print("Going into response engine - number is verified")
+            context.user_data['current_stage'] = "response_engine"
+            await handle_response(update, context)
+        else:
+            phone_status, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
+            
+            # If number has been stored but then we need to verify it since verification_stauts is False
+            if(phone_status == True):
+                user_data["current_stage"] = "awaiting_verification"
+                await handle_verification_response(update, context)
+            else:
+                user_email_status, user_email = database.user_email_status(BOT_USERNAME, user_id)
+                
+                if(user_email_status == False):
+                    user_data["current_stage"] == "awaiting_email"
+                    await handle_email(update, context)
+                else:
+                    user_data["current_stage"] == "awaiting_contact"
+                    if(update.message.contact == None):
+                        await handle_phone_number_via_text(update, context)
+                    
+                    # This will probably not run since message_handler only runs for text based inputs (not contact shares)
+                    else:
+                        # Since handle_contact is already set up to handle phone number sharing,
+                        # we directly call handle_contact when a phone number is expected.
+                        # This requires the next message to be a contact share, not a text.
+                        await handle_contact(update, context)
+
+    # If user data exists
     else:
-        # Handle other text messages
-        await handle_response(update, context)
+        print("Current Stage: ", user_data["current_stage"])
+        if(user_data["current_stage"] == "awaiting_email"):
+            await handle_email(update, context)
+        elif(user_data["current_stage"] == "awaiting_contact"):
+            if(update.message.contact == None):
+                await handle_phone_number_via_text(update, context)
+            else:
+                # Since handle_contact is already set up to handle phone number sharing,
+                # we directly call handle_contact when a phone number is expected.
+                # This requires the next message to be a contact share, not a text.
+                await handle_contact(update, context)
+        elif(user_data["current_stage"] == "awaiting_verification"):
+            await handle_verification_response(update, context)
+        else:
+            print("Going into response engine - no stage identified")
+            user_data["current_stage"] == "response_engine"
+            await handle_response(update, context)
 
 
 def main():
@@ -287,18 +432,20 @@ def main():
 
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start_command))
+    
+    # dp.add_handler(MessageHandler(filters.TEXT, handle_email))
     dp.add_handler(MessageHandler(filters.CONTACT, handle_contact))
 
-    dp.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_verification_response))
+    # Handle non-command messages
+    # This is your main text message handler
+    dp.add_handler(MessageHandler(filters.TEXT, message_handler))
+
+    # dp.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_verification_response))
     
     dp.add_handler(CommandHandler("help", help_command))
     dp.add_handler(CommandHandler("callme", callme))
     dp.add_handler(CommandHandler("payments", payments.purchase))
     dp.add_handler(CallbackQueryHandler(payments.button))
-
-    # Handle non-command messages
-    # This is your main text message handler
-    dp.add_handler(MessageHandler(filters.TEXT, message_handler))
 
 
     # Errors

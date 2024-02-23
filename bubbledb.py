@@ -1,6 +1,5 @@
 import re
 import requests
-import database
 
 
 
@@ -47,7 +46,7 @@ def find_user(find_phone_number):
         print(f"Error: {response.status_code} - {response.text}")
         return None
 
-# Example Usage:
+# # Example Usage:
 # print(find_user("16477667841"))
 
 

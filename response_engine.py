@@ -134,7 +134,50 @@ def decide_modes(chat_history):
 def split_messages(ai_response):
     # Regular expression to match sentences ending with specific punctuation and followed by a space or end of string
     reply_array = re.split(r'(?<=[.!?])\s+(?=[A-Za-z])', ai_response)
-    return reply_array
+
+    new_reply_array = []
+    temp = ""
+
+    for i, reply in enumerate(reply_array):
+
+        if i == 0:
+            # Store the first sentence temporarily
+            temp = reply
+        elif i == 1:
+            # Combine the first and second sentence and add to new_reply_array
+            new_reply_array.append(temp + " " + reply)
+        else:
+            # Remove period from string
+            if("." in reply):
+                reply = reply.replace(".", "")
+            
+            # Add remaining sentences to new_reply_array
+            new_reply_array.append(reply)
+
+    # Check if temp has a value and new_reply_array is empty, then add temp to new_reply_array
+    if temp and not new_reply_array:
+        if("." in temp):
+            temp = temp.replace(".", "")
+        new_reply_array.append(temp)
+
+    return new_reply_array
+
+
+def remove_questions(reply_array):
+    num_questions = 0
+
+    new_reply_array = []
+
+    for reply in reply_array:
+        if("?" in  reply):
+            if(num_questions < 1):
+                new_reply_array.append(reply)
+            
+            num_questions+=1
+        else:
+            new_reply_array.append(reply)
+
+    return new_reply_array
 
 
 def remove_emojis_except_specific(text: str) -> str:
@@ -183,11 +226,11 @@ edit the response you get to make sure it follows the following rules:
 
 
 Avoid asking mundane questions/statements like these:
-[ "Just know that I'm here for you whenever you need me." , "Anything else on your mind?", "is there anything else you'd like to talk about?"
+[ X "Just know that I'm here for you whenever you need me." , X "Anything else on your mind?", X "is there anything else you'd like to talk about?"
+
 
 Instead try to ask deeper questions about what the user is currently talking about, but if here are some general questions if the conversation seems to be coming to an end:
 {random.sample(QUESTIONS, 3)}
-
 
 This is an example of a good response: {texting_performance_str}
 
@@ -265,12 +308,6 @@ def create_response(chat_history: dict, text: str, update: Update) -> str:
 
     texting_perf_string = vectordb.retrieve_info(texing_performance_db, last_2_chats, 2)
     knowledge_kb_string = vectordb.retrieve_info(knowledge_kb, last_2_chats, 1)
-
-    print()
-    print("texting_perf_string")
-    print(texting_perf_string)
-    print()
-
 
     main_prompt = f'''You are an AI chatbot named Veronica that made to engage and talk with fans. You are meant to be as conversational as possible and text them as if you were a real person. Try to continue the conversation with them and go into deep topics. Try your best to be their friend, and DO NOT say hey there after every response with them. Keep your responses short and under 100 characters.
 
