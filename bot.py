@@ -11,7 +11,7 @@ import asyncio
 # import stripe
 from openai import OpenAI
 
-import response_engine
+import chatbot_response_engine
 import vectordb
 
 import database
@@ -19,6 +19,7 @@ import bubbledb
 import connectBubble
 import loginuser
 import paymentstest as payments
+import voicenoteHandler
 
 
 TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
@@ -369,18 +370,18 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     chat_history = database.get_user_chat_history(influencer_id, user_id)
 
     # Format the chat history for display
-    parsed_chat_history = response_engine.parse_chat_history(chat_history)
+    parsed_chat_history = chatbot_response_engine.parse_chat_history(chat_history)
 
     # Generate a response based on the user's message history (modify this function as needed)
-    ai_response = response_engine.create_response(parsed_chat_history, text, update)
+    ai_response = chatbot_response_engine.create_response(parsed_chat_history, text, update)
     database.add_chat_to_user_history(influencer_id, user_id, 'assistant', 'Influencer: ' + ai_response)
 
     # Send the chat history along with the AI response
     # chat_history_str = '\n'.join(f"{chat['content']}" for chat in chat_history)
     # print(f"Current Chat History: \n {chat_history_str}")
-
-    reply_array = response_engine.split_messages(ai_response)
-    reply_array = response_engine.remove_questions(reply_array)
+    
+    reply_array = chatbot_response_engine.split_messages(ai_response)
+    reply_array = chatbot_response_engine.remove_questions(reply_array)
 
     for message_reply in reply_array:
         print("message_reply: ", message_reply)
@@ -482,6 +483,8 @@ def main():
 
     # dp.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_verification_response))
     
+    dp.add_handler(MessageHandler(filters.VOICE, voicenoteHandler.voice_note_handler))
+
     dp.add_handler(CommandHandler("help", help_command))
     dp.add_handler(CommandHandler("callme", callme))
     dp.add_handler(CommandHandler("payments", payments.purchase))
