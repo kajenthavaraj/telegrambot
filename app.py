@@ -56,8 +56,8 @@ def stripe_webhook():
             print("Telegram user ID not found in session metadata.")
         
         # Use get_bubble_unique_id to fetch the unique ID from your database
-        #bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
-        bubble_unique_id = '1705089991492x506710590267403400'
+        bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
+        #bubble_unique_id = '1705089991492x506710590267403400'
         
         if bubble_unique_id:
             credits_purchased = calculate_credits(session)
