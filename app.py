@@ -2,7 +2,7 @@ from flask import Flask, request, abort
 import stripe
 import requests
 from typing import Final
-from database import update_chat_credits
+# from database import update_chat_credits
 
 
 # Flask app setup
