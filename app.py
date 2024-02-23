@@ -31,10 +31,10 @@ def stripe_webhook():
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
     except ValueError as e:
-        # Invalid payload
+        print(f"ValueError: {e}")
         abort(400)
     except stripe.error.SignatureVerificationError as e:
-        # Invalid signature
+        print(f"SignatureVerificationError: {e}")
         abort(400)
 
     # Handle successful checkout session completion
