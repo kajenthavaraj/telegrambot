@@ -1,72 +1,234 @@
-import re
 import requests
+import json
+# Returns Json File of Data for the Data Entry with the Uniuqe ID
+api_key = "7bfc4e7b2cfbd0475b1ec923a0ea4c99"
+
+INFLUENCER_ID_TO_BUBBLE_ID = {
+
+    "veronica_avluv" : "1703701959468x374948791862866400"
+
+}
+
+DATA_URL = "https://app.tryinfluencerai.com/api/1.1/obj/"
 
 
 
-def extract_area_code(text):
-    match = re.search(r"\+(\d+)", text)
+def get_data(unique_id, data_type):
+    # api_key "cb49dfd6e576e3153fcf8d3b211698b0"
 
-    if match:
-        area_code = match.group(1)
-        return area_code
-    else:
-        return None
-
-# Example Usage:
-# text = "🇬🇧 United Kingdom +44"
-# extract_area_code(text)
-
-
-import requests
-
-def find_user(find_phone_number):
-    api_key = '7bfc4e7b2cfbd0475b1ec923a0ea4c99'
-    data_type = 'user'  # Assuming 'User' is the data type for users in your Bubble app
-
-    # Construct the URL for fetching all users. Adjust if your API supports query parameters for filtering.
-    bubble_url = f"https://app.tryinfluencerai.com/api/1.1/obj/{data_type}"
+    bubble_url = f"{DATA_URL}{data_type}/{unique_id}"
     headers = {"Authorization": f"Bearer {api_key}"}
 
     response = requests.get(bubble_url, headers=headers)
 
     if response.status_code == 200:
-        users = response.json()['response']['results']
-
-        for user in users:
-            area_code = extract_area_code(user.get('previous_area_code', ''))
-            user_phone_number = user.get('phone_number', '')
-
-            if(str(area_code) + str(user_phone_number) == find_phone_number):
-                print(f"User found! - {user['first_name']}")
-                return user.get('_id', '')  # Returns the user object. Adjust if you need a specific field.
-
-        print("User not found.")
-        return None
+        data = response.json()
+        print("Data retrieved successfully!")
+        return data["response"]
     else:
         print(f"Error: {response.status_code} - {response.text}")
-        return None
+        return 404
+    
+def get_data_list(data_type, keys, values, constraint_types, cursor = None, limit=None):
 
-# # Example Usage:
-# print(find_user("16477667841"))
+    # api_key "cb49dfd6e576e3153fcf8d3b211698b0"
+
+    url = f"{DATA_URL}{data_type}"
+    if keys != None:
+        constraints = '['
+
+        for i, key in enumerate(keys):
+            constraints = constraints + f'{{"key" : "{key}", "constraint_type" : "{constraint_types[i]}","value" : "{values[i]}"}},'
+        
+        constraints = constraints[:-1]
+        
+        constraints = constraints + ']'
 
 
-# def get_user_data(user_unique_id):
-#     api_key = '7bfc4e7b2cfbd0475b1ec923a0ea4c99'
-#     data_type = 'user'
+        url = url + "?constraints=" + constraints
+    if keys != None and cursor != None:
+        url = url + "&"
+    if cursor != None:
+        url = url + f'cursor={cursor}'
+    if (keys != None or cursor != None) and limit != None:
+        url = url + "&"
+    if limit != None:
+        url = url + f'limit={limit}'
 
-#     # Construct the URL for fetching a user by ID.
-#     bubble_url = f"https://app.tryinfluencerai.com/api/1.1/obj/{data_type}/{user_unique_id}"
-#     headers = {"Authorization": f"Bearer {api_key}"}
 
-#     response = requests.get(bubble_url, headers=headers)
+    headers = {"Authorization": f"Bearer {api_key}"}
 
-#     if response.status_code == 200:
-#         user = response.json()['response']  # Adjust based on the actual JSON structure returned by your API
+    response = requests.get(url, headers=headers,)
 
-#         # Assuming you want to print or return some basic information about the user
-#         print(f"User found! - {user['first_name']} {user['last_name']}")
-#         return user  # Returns the complete user object. Adjust if you need specific fields.
+    if response.status_code == 200:
+        # print(response.json())
+        dataset = response.json()['response']
+        return dataset
+    else:
+        # print(response.json())
+        return 404
+    
+# Returns a data field from data base
+def get_data_field(unique_id, data_type, field_name):
 
-#     else:
-#         print(f"Error: {response.status_code} - {response.text}")
-#         return None
+    jsondata = get_data(unique_id, data_type)
+
+    if jsondata != 404:
+        print("JSON DATA")
+        print(jsondata)
+        try:
+            lead_list = jsondata[field_name]
+        except:
+            lead_list = []
+        return lead_list
+    else:
+        return "fail 404 error"
+
+# Updates the database with a new value
+def update_database(unique_id, data_type, field_name, new_value, **kwargs):
+    # api_key 'cb49dfd6e576e3153fcf8d3b211698b0'
+
+
+    bubble_url = f"{DATA_URL}{data_type}/{unique_id}"
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    
+    data = {field_name: new_value}
+    
+    response = requests.patch(bubble_url, json=data, headers=headers)
+
+    if response.status_code == int(204):
+        return 204
+    else:
+        return -1
+
+def bulk_create_data(data_type, data):
+    # print(data)
+    # api_key 'cb49dfd6e576e3153fcf8d3b211698b0'
+    bubble_url = f"{DATA_URL}{data_type}/bulk"
+
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "text/plain"}
+
+    data_to_send = ""
+
+    for dict in data:
+        data_to_send = data_to_send + json.dumps(dict) + "\n"
+    response = requests.post(bubble_url, headers=headers, data=data_to_send)
+
+    result = []
+
+    for item in response.iter_lines():
+        result.append(json.loads(item))
+    if response.status_code == int(200):
+        return result
+    else:
+        # print(response)
+        raise Exception
+
+def update_data_fields(unique_id, data_type, data):
+    # api_key 'cb49dfd6e576e3153fcf8d3b211698b0'
+
+
+    bubble_url = f"{DATA_URL}{data_type}/{unique_id}"
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+
+
+    response = requests.patch(bubble_url, json=data, headers=headers)
+
+    if response.status_code == int(204):
+        return 204
+    else:
+        # print(response)
+        # print(response.content)
+        return response
+
+# Adds a new entry to database
+
+def add_entry(data_type, data):
+    # api_key 'cb49dfd6e576e3153fcf8d3b211698b0'
+
+    bubble_url = f"{DATA_URL}{data_type}"
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+
+    response = requests.post(bubble_url, json=data, headers=headers)
+
+    if response.status_code == 201:
+
+        response_data = response.json()
+
+        unique_id = response_data['id']
+        return unique_id
+
+    else:
+        print(response)
+        return -1
+    
+
+
+# if __name__ == "__main__":
+#     response = get_data_list("User", ["phone_number"], ["6477667841"], ["equals"])
+
+#     if response != 404 and 'results' in response and len(response['results']) > 0:
+#         users = response['results']
+
+#         # Access the first user object (assuming you want the first one)
+#         first_user = users[0]
+#         print(first_user)
+#         print()
+#         print(first_user.get('_id', ''))
+
+
+
+
+# # Creating user test
+    
+# new_user_data = {
+#     "first_name": "33ssd",
+#     "email": "ksss@example.com",
+#     # "password": "securepassword"  # Be mindful of security and privacy concerns when handling passwords
+#     # Add any other fields you have for your User data type
+# }
+
+# result = add_entry("User", new_user_data)
+# print(result)
+
+
+
+
+
+
+def add_to_database_list(unique_id, data_type, field_name, new_values):
+    """
+    Updates a list field in the database by adding new values after retrieving the current list.
+    :param unique_id: The unique identifier for the data entry to update.
+    :param data_type: The type of data (e.g., User, Subscription).
+    :param field_name: The name of the list field to update.
+    :param new_values: A list of new values to add to the list field.
+    :return: HTTP status code indicating the result of the operation.
+    """
+    # Step 1: Perform a GET request to fetch the current list
+    get_url = f"{DATA_URL}{data_type}/{unique_id}"
+    headers = {"Authorization": f"Bearer {api_key}"}
+    get_response = requests.get(get_url, headers=headers)
+
+    if get_response.status_code != 200:
+        print(f"Error fetching data: {get_response.status_code} - {get_response.text}")
+        return get_response.status_code
+
+    # Extract the current list from the response
+    current_list = get_response.json().get('response', {}).get(field_name, [])
+    
+    # Step 2: Append the new values to the current list
+    updated_list = current_list + new_values  # This combines the old and new values
+
+    # Step 3: Perform a PATCH request to update the list with the new complete list
+    update_url = f"{DATA_URL}{data_type}/{unique_id}"
+    update_headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    update_data = {field_name: updated_list}
+    update_response = requests.patch(update_url, json=update_data, headers=update_headers)
+
+    if update_response.status_code == 204:
+        print("List updated successfully!")
+        return 204  # Success, no content to return
+    else:
+        print(f"Error updating list: {update_response.status_code} - {update_response.text}")
+        return update_response.status_code

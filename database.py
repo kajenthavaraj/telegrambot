@@ -5,6 +5,11 @@ from datetime import datetime
 import pytz
 import time
 
+import bubbledb
+import connectBubble
+
+import CONSTANTS
+
 
 def init_database():
     # Check if the default Firebase app has already been initialized
@@ -97,7 +102,6 @@ def add_chat_to_user_history(influencer_id, user_id, role, content):
 # Example usage
 # add_chat_to_user_history('veronicaavluvaibot', 'user12345', 'user', 'Hello, how are you?')
 # add_chat_to_user_history('veronicaavluvaibot', 'user12345', 'agent', "I'm good, thanks for asking!")
-
 
 
 
@@ -255,6 +259,47 @@ def get_bubble_unique_id(influencer_id, user_id):
 
 
 
+def add_subscription_id(influencer_id, user_id, bubble_user_uid):
+    # Create subscription_id
+    subscription_id = connectBubble.add_subscription(bubble_user_uid, user_id, CONSTANTS.IUFLUENCER_UID)
+
+    # Add to Firebase
+    db = init_database()
+    # Reference to the specific subscription document of the user under the influencer
+    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
+    
+    # Update the document with the new subscription_id field
+    user_subscription_ref.update({
+        'subscription_id': subscription_id
+    })
+    # print(f"Added subscription_id: {subscription_id} for user {user_id} under influencer {influencer_id}.")
+
+
+
+def get_subscription_id(influencer_id, user_id):
+    db = init_database()
+    # Reference to the specific subscription document of the user under the influencer
+    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
+
+    # Attempt to fetch the subscription document
+    user_subscription_doc = user_subscription_ref.get()
+
+    # Check if the document exists and contains the 'subscription_id' field
+    if user_subscription_doc.exists:
+        user_data = user_subscription_doc.to_dict()
+        if 'subscription_id' in user_data:
+            return user_data['subscription_id']  # Return the subscription ID
+        else:
+            return False  # 'subscription_id' field is not present
+    else:
+        return False  # Document does not exist
+
+
+
+
+
+
+
 def store_user_email(influencer_id, user_id, email):
     db = init_database()
     # Reference to the specific subscription document of the user under the influencer
@@ -291,107 +336,3 @@ def user_email_status(influencer_id, user_id):
 
 # Example usage:
 # user_email_status('veronicaavluvaibot', 'user12345')
-
-
-
-
-
-
-################################################################
-###################### Credits Functions #######################
-################################################################
-
-def initialize_credits(influencer_id, user_id):
-    db = init_database()
-    # Reference to the specific subscription document of the user under the influencer
-    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
-    
-    # Get the current local time
-    current_time = time.localtime()
-
-    # Format the time to extract just the date, month, and year
-    current_date = time.strftime("%d-%m-%Y", current_time)
-
-    # Update the document with the new bubble_user_unique_id field
-    user_subscription_ref.update({
-        'minutes_credits': 5,
-        'chat_credits': 30,
-        'last_chat_base_refill': current_date,
-    })
-    print(f"Initialized credits under for {user_id} under {influencer_id}")
-
-
-# Example usage:
-# initialize_credits('veronicaavluvaibot', 'user12345')
-
-
-def get_minutes_credits(influencer_id, user_id):
-    db = init_database()
-    # Reference to the specific subscription document of the user under the influencer
-    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
-
-    # Attempt to fetch the subscription document
-    user_subscription_doc = user_subscription_ref.get()
-
-    # Check if the document exists and contains the 'minutes_credits' field
-    if user_subscription_doc.exists:
-        user_data = user_subscription_doc.to_dict()
-        if 'minutes_credits' in user_data:
-            return user_data['minutes_credits']
-        else:
-            initialize_credits(influencer_id, user_id)
-            return False  # 'minutes_credits' field is not present
-    else:
-        return False  # Document does not exist
-
-
-def get_chat_credits(influencer_id, user_id):
-    db = init_database()
-    # Reference to the specific subscription document of the user under the influencer
-    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
-
-    # Attempt to fetch the subscription document
-    user_subscription_doc = user_subscription_ref.get()
-
-    # Check if the document exists and contains the 'chat_credits' field
-    if user_subscription_doc.exists:
-        user_data = user_subscription_doc.to_dict()
-        if 'chat_credits' in user_data:
-            return user_data['chat_credits']
-        else:
-            initialize_credits(influencer_id, user_id)
-            return False  # 'chat_credits' field is not present
-    else:
-        return False  # Document does not exist
-
-
-def update_minutes_credits(influencer_id, user_id, num_minutes):
-    db = init_database()
-    # Reference to the specific subscription document of the user under the influencer
-    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
-
-    # Fetch the current minutes credits, if any
-    current_credits = get_minutes_credits(influencer_id, user_id)
-    if current_credits is False:
-        # Initialize credits if they don't exist
-        current_credits = 0
-
-    # Update the 'minutes_credits' field with the new value
-    new_credits = current_credits + num_minutes
-    user_subscription_ref.update({'minutes_credits': new_credits})
-
-
-def update_chat_credits(influencer_id, user_id, num_credits):
-    db = init_database()
-    # Reference to the specific subscription document of the user under the influencer
-    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
-
-    # Fetch the current chat credits, if any
-    current_credits = get_chat_credits(influencer_id, user_id)
-    if current_credits is False:
-        # Initialize credits if they don't exist
-        current_credits = 0
-
-    # Update the 'chat_credits' field with the new value
-    new_credits = current_credits + num_credits
-    user_subscription_ref.update({'chat_credits': new_credits})
