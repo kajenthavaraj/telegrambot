@@ -88,8 +88,9 @@ def stripe_webhook():
                 last_billing_date = datetime.utcfromtimestamp(current_period_start).strftime('%Y-%m-%d')
                 next_billing_date = datetime.utcfromtimestamp(current_period_end).strftime('%Y-%m-%d')
             else:
-                last_billing_date = 'Unknown'
-                next_billing_date = 'Unknown'
+                current_date = datetime.utcnow().strftime('%Y-%m-%d')
+                last_billing_date = current_date
+                next_billing_date = current_date
                     
 
             # Check if a subscription already exists for the user
