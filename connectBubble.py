@@ -164,11 +164,10 @@ def create_user(email, unparsed_phone_number, first_name):
 
 
 
-# Creating subscription
 def add_subscription(user_uid, telegram_user_id, influencer_uid, subscription_ID, subscription_plan, status, last_billing_date, next_billing_date):
+    print("Attempting to create subscription entry in Bubble...")
 
-    # Create subscription
-
+    # Prepare the data for the subscription
     data = {
         "credits_used": 0,
         "influencer": influencer_uid,
@@ -182,24 +181,29 @@ def add_subscription(user_uid, telegram_user_id, influencer_uid, subscription_ID
         "next_billing_date": next_billing_date,
     }
     
+    # Attempt to create the subscription entry in Bubble
     sub_id = bubbledb.add_entry("subscription", data)
-    print(sub_id)
-    
+    print(f"Response from Bubble for subscription creation: {sub_id}")
 
-    if sub_id:
-        print(f"Subscription {sub_id} added successfully")
+    # Check if the subscription was successfully created
+    if isinstance(sub_id, str):
+        print(f"Subscription {sub_id} added successfully.")
         
-        # Append subscription to user's list of subscriptions
+        # Attempt to append the subscription to the user's list of subscriptions
+        print(f"Attempting to append subscription {sub_id} to user {user_uid}'s subscription list...")
         response = bubbledb.add_to_database_list(user_uid, "User", "subscriptions", [sub_id])
-        if response:
+        print(f"Response from Bubble for appending subscription to user's list: {response}")
+
+        if response == 204:
             print("Subscription added to user's list successfully.")
             return True
         else:
-            print("Failed to append subscription to user's list.")
+            print("Failed to append subscription to user's list. Response code: ", response)
             return False
     else:
-        print("Failed to create subscription entry in Bubble.")
+        print("Failed to create subscription entry in Bubble. Ensure the data is correct and matches Bubble's expected schema.")
         return False
+
 
 
 def check_user_subscriptions(bubble_unique_id):
