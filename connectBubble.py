@@ -170,11 +170,12 @@ def add_subscription(user_uid, telegram_user_id, influencer_uid, subscription_ID
     # Prepare the data for the subscription
     data = {
         "credits_used": 0,
+        "fan_description": "none",
         "influencer": influencer_uid,
         "minutes_spent": 0,
         "telegram_user_id": telegram_user_id,
         "user": user_uid, 
-        "stripe_subscription_id": subscription_ID,
+        "subscription_ID": subscription_ID,
         "subscription_plan": subscription_plan,
         "status": status,
         "last_billing_date": last_billing_date,

@@ -160,6 +160,7 @@ def add_entry(data_type, data):
 
     else:
         print(response)
+        print(f"Error creating subscription in Bubble: {response.status_code} - {response.text}")
         return -1
     
 
