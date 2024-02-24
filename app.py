@@ -52,7 +52,7 @@ def stripe_webhook():
         #bubble_unique_id = '1705089991492x506710590267403400'
 
         if not bubble_unique_id:
-            print("Bubble unique ID not found.")
+            print("Bubble unique ID not found in the first if statement")
             # Handle error, maybe send a message back to user
             return '', 200
 
@@ -105,7 +105,7 @@ def handle_subscription_created(event):
     bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
 
     if not bubble_unique_id:
-        print("Bubble unique ID not found.")
+        print("Bubble unique ID not found after calling the handle function.")
         # Handle error, maybe send a message back to user
         return '', 200
             
