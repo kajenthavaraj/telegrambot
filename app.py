@@ -61,6 +61,8 @@ def stripe_webhook():
             subscription = event['data']['object']
             metadata = subscription.get('metadata', {})
             telegram_user_id = metadata.get('telegram_user_id')
+            subscription_id = session.get('subscription')
+
 
             influencer_id = CONSTANTS.BOT_USERNAME 
             bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
@@ -80,9 +82,13 @@ def stripe_webhook():
                 subscription_plan = 'No plan nickname'  # Fallback value or handle error
             status = subscription.get('status')
 
-            try: 
-                current_period_start = subscription.get('current_period_start')
-                current_period_end = subscription.get('current_period_end')
+
+            if subscription_id:
+                print("Fetching subscription details for:", subscription_id)
+                subscription = stripe.Subscription.retrieve(subscription_id)
+
+                current_period_start = subscription['current_period_start']
+                current_period_end = subscription['current_period_end']
 
                 # Check if current_period_start and current_period_end are not None before converting
                 if current_period_start is not None and current_period_end is not None:
@@ -93,11 +99,7 @@ def stripe_webhook():
                     last_billing_date = current_date
                     next_billing_date = current_date
 
-            except Exception as e:
-                logging.error(f"Error processing subscription dates: {e}")
-                logging.info(f"Subscription object: {subscription}")
-
-
+                
             # Check if a subscription already exists for the user
             existing_subscriptions = check_user_subscriptions(bubble_unique_id)  # You'll need to implement this function
             if existing_subscriptions and any(sub['status'] in ['active', 'trialing'] for sub in existing_subscriptions):
