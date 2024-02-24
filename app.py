@@ -57,7 +57,51 @@ def stripe_webhook():
             return '', 200
 
         if session.get('subscription'):
-            print("Subscription started, will be handled in 'customer.subscription.created'.")
+            print("Subscription started")
+            subscription = event['data']['object']
+            metadata = subscription.get('metadata', {})
+            telegram_user_id = metadata.get('telegram_user_id')
+
+            influencer_id = CONSTANTS.BOT_USERNAME 
+            bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
+
+            print("The telegram ID is: ", telegram_user_id)
+
+            if not bubble_unique_id:
+                print("Bubble unique ID not found after calling the handle function.")
+                # Handle error, maybe send a message back to user
+                return '', 200
+                    
+            stripe_subscription_id = subscription.get('id')
+            subscription_plan = subscription.get('items').get('data')[0].get('plan').get('nickname')  # Adjust based on actual Stripe response structure
+            status = subscription.get('status')
+            current_period_start = subscription.get('current_period_start')
+            current_period_end = subscription.get('current_period_end')
+                    
+            # Convert timestamps to readable dates
+            last_billing_date = datetime.utcfromtimestamp(current_period_start).strftime('%Y-%m-%d')
+            next_billing_date = datetime.utcfromtimestamp(current_period_end).strftime('%Y-%m-%d')
+
+            # Check if a subscription already exists for the user
+            existing_subscriptions = check_user_subscriptions(bubble_unique_id)  # You'll need to implement this function
+            if existing_subscriptions and any(sub['status'] in ['active', 'trialing'] for sub in existing_subscriptions):
+                print("User already has an active subscription.")
+                message = "You already have an active subscription."
+            else:
+                # Add the new subscription to Bubble
+                success = add_subscription(
+                    bubble_unique_id, telegram_user_id, influencer_id, stripe_subscription_id,
+                    subscription_plan, status, last_billing_date, next_billing_date
+                )
+
+                if success:
+                    print(f"Subscription {stripe_subscription_id} added successfully")
+                    message = f"Your subscription has been activated! Next billing date: {next_billing_date}."
+                else:
+                    print("Failed to add subscription")
+                    message = "Failed to add subscription. Please contact support."
+
+                send_telegram_message(telegram_user_id, message)
         else:
             if telegram_user_id and bubble_unique_id:
                 credits_purchased = calculate_credits(session)
@@ -76,9 +120,6 @@ def stripe_webhook():
                     send_telegram_message(telegram_user_id, "Something went wrong. Please contact support at admin@tryinfluencerai.com")
                 else:
                     logging.error("Telegram user ID not found in session metadata.")
-    
-    elif event['type'] == 'customer.subscription.created':
-        handle_subscription_created(event)
 
     # Handle successful invoice payment (renewal)
     elif event['type'] == 'invoice.payment_succeeded':
@@ -94,55 +135,7 @@ def stripe_webhook():
         send_telegram_message(telegram_user_id, message)
     
     return '', 200
-
-
-def handle_subscription_created(event):
-    subscription = event['data']['object']
-    metadata = subscription.get('metadata', {})
-    telegram_user_id = metadata.get('telegram_user_id')
-
-    influencer_id = CONSTANTS.BOT_USERNAME 
-    bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
-
-    print("The telegram ID is: ", telegram_user_id)
-
-    if not bubble_unique_id:
-        print("Bubble unique ID not found after calling the handle function.")
-        # Handle error, maybe send a message back to user
-        return '', 200
-            
-    stripe_subscription_id = subscription.get('id')
-    subscription_plan = subscription.get('items').get('data')[0].get('plan').get('nickname')  # Adjust based on actual Stripe response structure
-    status = subscription.get('status')
-    current_period_start = subscription.get('current_period_start')
-    current_period_end = subscription.get('current_period_end')
-            
-    # Convert timestamps to readable dates
-    last_billing_date = datetime.utcfromtimestamp(current_period_start).strftime('%Y-%m-%d')
-    next_billing_date = datetime.utcfromtimestamp(current_period_end).strftime('%Y-%m-%d')
-
-    # Check if a subscription already exists for the user
-    existing_subscriptions = check_user_subscriptions(bubble_unique_id)  # You'll need to implement this function
-    if existing_subscriptions and any(sub['status'] in ['active', 'trialing'] for sub in existing_subscriptions):
-        print("User already has an active subscription.")
-        message = "You already have an active subscription."
-    else:
-        # Add the new subscription to Bubble
-        success = add_subscription(
-            bubble_unique_id, telegram_user_id, influencer_id, stripe_subscription_id,
-            subscription_plan, status, last_billing_date, next_billing_date
-        )
-
-        if success:
-            print(f"Subscription {stripe_subscription_id} added successfully")
-            message = f"Your subscription has been activated! Next billing date: {next_billing_date}."
-        else:
-            print("Failed to add subscription")
-            message = "Failed to add subscription. Please contact support."
-
-        send_telegram_message(telegram_user_id, message)
-
-
+    
 
 def send_telegram_message(telegram_user_id, message):
     send_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
