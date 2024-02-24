@@ -81,6 +81,10 @@ async def voice_note_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     # Delete the file after transcription
     os.remove(file_path)
 
+    
+    ######### Send the voice note #########
+    # will need to add logic for whether to send a text message or not
+
     # Add the current message to the user's chat history
     database.add_chat_to_user_history(BOT_USERNAME, user_id, "user", "Fan: " + transcription)
 
@@ -94,9 +98,7 @@ async def voice_note_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     ai_response = vn_response_engine.create_response(parsed_chat_history, transcription, update)
     # print("ai_response: ", ai_response)
 
-    ######### Send the voice note #########
-    # will need to add logic for whether to send a text message or not
-    
+
     await send_voice_note(update, context, ai_response)
 
 

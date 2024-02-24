@@ -20,6 +20,7 @@ import connectBubble
 import loginuser
 import paymentstest
 import voicenoteHandler
+import imagesdb
 
 
 TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
@@ -65,6 +66,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         context.user_data['current_stage'] = "awaiting_email"
 
         user_first_name = update.message.from_user.first_name
+        
+        await send_image(update, context)
+
         message_text = f'''Hey {user_first_name}, welcome to VeronicaAI 💕!
 
 I was created by Veronica Avluv and trained on everything you can know about her. I'm built to act, talk and sound just like she does.
@@ -190,7 +194,6 @@ def get_user_unique_id(update, context):
         context.user_data['user_unique_id'] = unique_id
 
 
-
 async def handle_verification_response(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     print("handle_verification_response invoked")
     user_id = str(update.message.from_user.id)
@@ -259,7 +262,6 @@ Enter /help if you run into any issues''', reply_markup=ReplyKeyboardRemove())
                     # Create and add subscription
                     database.add_subscription_id(BOT_USERNAME, user_id, user_unique_id)                
 
-                
                 await update.message.reply_text(f"hey {update.message.from_user.first_name}, it's great to meet you")
 
                 await update.message.reply_text(f"how's your day been so far?")
@@ -313,6 +315,21 @@ async def callme(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def error(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     print(f"Update {update} caused error {context.error}")
+
+
+async def send_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = update.message.chat_id  # Get the chat ID to know where to send the image
+    
+    today_date = time.time()
+
+    # Sending an image by a URL
+    image_url = imagesdb.get_image(today_date)
+    await context.bot.send_photo(chat_id=chat_id, photo=image_url)
+
+    # If you have a local image file you want to send, you can use file open
+    # with open('path/to/your/image.jpg', 'rb') as file:
+    #     await context.bot.send_photo(chat_id=chat_id, photo=file)
+
 
 
 # Maybe have "account info - give status on what's in the account" command that sends all the account info (number of credits, etc.)
@@ -388,6 +405,8 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         print("message_reply: ", message_reply)
         await update.message.reply_text(message_reply)
         # asyncio.sleep(1)
+
+
 
 
 '''
