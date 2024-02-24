@@ -164,7 +164,7 @@ def create_user(email, unparsed_phone_number, first_name):
 
 
 # Creating subscription
-def add_subscription(user_uid, telegram_user_id, influencer_uid):
+def add_subscription(user_uid, telegram_user_id, influencer_uid, subscription_ID, subscription_plan, status, last_billing_date, next_billing_date):
 
     # Create subscription
 
@@ -173,29 +173,53 @@ def add_subscription(user_uid, telegram_user_id, influencer_uid):
         "influencer": influencer_uid,
         "minutes_spent": 0,
         "telegram_user_id": telegram_user_id,
-        "user": user_uid
+        "user": user_uid, 
+        "stripe_subscription_id": subscription_ID,
+        "subscription_plan": subscription_plan,
+        "status": status,
+        "last_billing_date": last_billing_date,
+        "next_billing_date": next_billing_date,
     }
     
     sub_id = bubbledb.add_entry("subscription", data)
     print(sub_id)
     
 
-    if(sub_id != 400 or sub_id != 401):
-        # Append subscription to user
-        response = bubbledb.add_to_database_list(user_uid, "user", "subscriptions", [sub_id])
-        print(response)
-        if(response == 400 or response == 401):
+    if sub_id:
+        print(f"Subscription {sub_id} added successfully")
+        
+        # Append subscription to user's list of subscriptions
+        response = bubbledb.add_to_database_list(user_uid, "User", "subscriptions", sub_id)
+        if response:
+            print("Subscription added to user's list successfully.")
+            return True
+        else:
+            print("Failed to append subscription to user's list.")
             return False
     else:
+        print("Failed to create subscription entry in Bubble.")
         return False
 
-    # Return the subscription_id
-    return sub_id
 
-# Example usage
-# subscription_id = add_subscription("1708537766913x417354630463497660", CONSTANTS.IUFLUENCER_UID)
-# print(subscription_id)
-# # 1708669938493x901799643263067500
+def check_user_subscriptions(bubble_unique_id):
+    
+    user_data = bubbledb.get_data(bubble_unique_id, "User")  
+
+    if user_data == 404:
+        print("User not found or error fetching user data.")
+        return False  # Or handle this case as needed
+
+    # Assuming the user's subscriptions are stored under a field named "subscriptions"
+    # And each subscription in the list has a "status" field indicating if it's active
+    subscriptions = user_data.get('subscriptions', [])
+    active_subscriptions = [sub for sub in subscriptions if sub.get('status') == 'active']
+
+    if active_subscriptions:
+        print("User has active subscriptions.")
+        return True  # Or return active_subscriptions for more detailed info
+    else:
+        print("User does not have active subscriptions.")
+        return False
 
 
 

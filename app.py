@@ -2,10 +2,12 @@ from flask import Flask, request, abort
 import stripe
 import requests
 from typing import Final
-from connectBubble import update_minutes_credits, update_chat_credits
+from connectBubble import update_minutes_credits, add_subscription, check_user_subscriptions
 from database import get_bubble_unique_id
 import CONSTANTS
 import logging
+from datetime import datetime
+
 
 # Flask app setup
 app = Flask(__name__)
@@ -45,7 +47,7 @@ def stripe_webhook():
         
         metadata = session.get('metadata', {})
         telegram_user_id = metadata.get('telegram_user_id')
-        influencer_id = CONSTANTS.BOT_USERNAME # Example; adjust as needed
+        influencer_id = CONSTANTS.BOT_USERNAME 
         bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
         #bubble_unique_id = '1705089991492x506710590267403400'
 
@@ -68,6 +70,64 @@ def stripe_webhook():
             else:
                 logging.error("Telegram user ID not found in session metadata.")
 
+    # Handle new subscription creation
+    elif event['type'] == 'customer.subscription.created':
+        subscription = event['data']['object']
+        metadata = subscription.get('metadata', {})
+        telegram_user_id = metadata.get('telegram_user_id')
+
+        influencer_id = CONSTANTS.BOT_USERNAME 
+        bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
+
+        if not bubble_unique_id:
+            print("Bubble unique ID not found.")
+            # Handle error, maybe send a message back to user
+            return '', 200
+        
+        stripe_subscription_id = subscription.get('id')
+        subscription_plan = subscription.get('items').get('data')[0].get('plan').get('nickname')  # Adjust based on actual Stripe response structure
+        status = subscription.get('status')
+        current_period_start = subscription.get('current_period_start')
+        current_period_end = subscription.get('current_period_end')
+        
+        # Convert timestamps to readable dates
+        last_billing_date = datetime.utcfromtimestamp(current_period_start).strftime('%Y-%m-%d')
+        next_billing_date = datetime.utcfromtimestamp(current_period_end).strftime('%Y-%m-%d')
+
+        # Check if a subscription already exists for the user
+        existing_subscriptions = check_user_subscriptions(bubble_unique_id)  # You'll need to implement this function
+        if existing_subscriptions and any(sub['status'] in ['active', 'trialing'] for sub in existing_subscriptions):
+            print("User already has an active subscription.")
+            message = "You already have an active subscription."
+        else:
+            # Add the new subscription to Bubble
+            success = add_subscription(
+                bubble_unique_id, telegram_user_id, influencer_id, stripe_subscription_id,
+                subscription_plan, status, last_billing_date, next_billing_date
+            )
+
+            if success:
+                print(f"Subscription {stripe_subscription_id} added successfully")
+                message = f"Your subscription has been activated! Next billing date: {next_billing_date}."
+            else:
+                print("Failed to add subscription")
+                message = "Failed to add subscription. Please contact support."
+
+        send_telegram_message(telegram_user_id, message)
+    
+    # Handle successful invoice payment (renewal)
+    elif event['type'] == 'invoice.payment_succeeded':
+        invoice = event['data']['object']
+        metadata = invoice.get('metadata', {})
+        telegram_user_id = metadata.get('telegram_user_id')
+        
+        # Fetch next billing date from invoice
+        next_billing_timestamp = invoice.get('next_payment_attempt')
+        next_billing_date = datetime.utcfromtimestamp(next_billing_timestamp).strftime('%Y-%m-%d') if next_billing_timestamp else "N/A"
+
+        message = f"Thank you for your continued subscription. Next billing date: {next_billing_date}."
+        send_telegram_message(telegram_user_id, message)
+    
     return '', 200
 
 

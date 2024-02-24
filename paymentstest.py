@@ -58,47 +58,72 @@ async def purchase(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text('Please choose the duration you’d like to purchase:', reply_markup=reply_markup)
 
+async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    keyboard = [
+        [InlineKeyboardButton("Monthly - $24.99", callback_data='subscribe_monthly')],
+        [InlineKeyboardButton("Yearly - $249", callback_data='subscribe_yearly')]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text('Choose your subscription plan:', reply_markup=reply_markup)
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
-
-    # Extract the selected duration and calculate the price
-    duration_minutes = int(query.data)  # This is based on the callback_data set in the InlineKeyboardButton
-    amount = duration_minutes * 100  # Stripe expects amounts in cents
-
     user_id = str(update.effective_user.id)
-    print(user_id)
 
-    # Create a Stripe Checkout Session with deep link redirection
-    checkout_session = stripe.checkout.Session.create(
-        payment_method_types=['card'],
-        line_items=[{
-            'price_data': {
-                'currency': 'usd',
-                'product_data': {
-                    'name': f'{duration_minutes} minutes credits for Veronica AI',
+    if query.data.startswith('subscribe'):
+        # Subscription handling logic
+        if query.data == 'subscribe_monthly':
+            price_id = 'price_1OnAcnBo1ZNr3GjAKryjcBaa'  # Replace with your Stripe price ID
+        elif query.data == 'subscribe_yearly':
+            price_id = 'price_1OnAe8Bo1ZNr3GjAvMXybMlU'  # Replace with your Stripe price ID
+
+        # Create a Stripe Checkout Session for subscription
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price': price_id,
+                'quantity': 1,
+            }],
+            mode='subscription',
+            success_url='https://t.me/veronicaavluvaibot?start=subscription_successful',
+            cancel_url='https://t.me/veronicaavluvaibot?start=subscription_canceled',
+            metadata={'telegram_user_id': user_id},  # Pass in metadata to identify the user
+        )
+
+        keyboard = [[InlineKeyboardButton("Complete Subscription", url=checkout_session.url)]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await context.bot.send_message(chat_id=query.message.chat_id, text="Please complete your subscription:", reply_markup=reply_markup)
+    else:
+        # One-off payment handling logic
+        duration_minutes = int(query.data)  # This is based on the callback_data set in the InlineKeyboardButton
+        amount = duration_minutes * 100  # Stripe expects amounts in cents
+
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': f'{duration_minutes} minutes credits for Veronica AI',
+                    },
+                    'unit_amount': amount,
                 },
-                'unit_amount': amount,
-            },
-            'quantity': 1,
-        }],
-        metadata={'telegram_user_id': user_id}, # pass in metadata
-        mode='payment',
-        success_url='https://t.me/veronicaavluvaibot?start=payment_successful',
-        cancel_url='https://t.me/veronicaavluvaibot?start=payment_canceled',
-    )
-
-    # Prepare the inline keyboard with the payment URL
-    keyboard = [[InlineKeyboardButton("Complete Payment", url=checkout_session.url)]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    payment_text = '''Please complete your payment:
+                'quantity': 1,
+            }],
+            metadata={'telegram_user_id': user_id},
+            mode='payment',
+            success_url='https://t.me/veronicaavluvaibot?start=payment_successful',
+            cancel_url='https://t.me/veronicaavluvaibot?start=payment_canceled',
+        )
+        payment_text = '''Please complete your payment:
 
 (all payments are securely processed by Stripe)'''
 
-    # Use context.bot.send_message to send a new message to the chat
-    await context.bot.send_message(chat_id=query.message.chat_id, text=payment_text, reply_markup=reply_markup)
+        keyboard = [[InlineKeyboardButton("Complete Payment", url=checkout_session.url)]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await context.bot.send_message(chat_id=query.message.chat_id, text = payment_text, reply_markup=reply_markup)
+
 
 
 def main():
@@ -108,6 +133,8 @@ def main():
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_response))
 
     application.add_handler(CommandHandler("payments", purchase))
+    application.add_handler(CommandHandler("subscribe", subscribe))
+
     application.add_handler(CallbackQueryHandler(button))
 
     print("Bot is polling...")
