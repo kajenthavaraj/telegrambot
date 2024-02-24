@@ -5,6 +5,7 @@ from typing import Final
 from connectBubble import update_minutes_credits, update_chat_credits
 from database import get_bubble_unique_id
 import CONSTANTS
+import logging
 
 # Flask app setup
 app = Flask(__name__)
@@ -42,7 +43,6 @@ def stripe_webhook():
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         
-        # Assume you have telegram_user_id and influencer_id in metadata
         metadata = session.get('metadata', {})
         telegram_user_id = metadata.get('telegram_user_id')
         influencer_id = CONSTANTS.BOT_USERNAME # Example; adjust as needed
@@ -51,20 +51,22 @@ def stripe_webhook():
 
         if telegram_user_id and bubble_unique_id:
             credits_purchased = calculate_credits(session)
-            amount_paid = session.get('amount_total') / 100
+            amount_paid = format(session.get('amount_total') / 100, '.2f')
             currency = session.get('currency').upper()
 
             # Now you can update the credits in Bubble using this unique ID
             update_minutes_credits(bubble_unique_id, credits_purchased)
 
-            message = (f"Thank you for your purchase! "
-               f"You have successfully bought {credits_purchased} credits "
-               f"for {amount_paid} {currency}.")
+            message = f"Thank you for your purchase! You have successfully bought {credits_purchased} credits for {amount_paid} {currency}."
+
             send_telegram_message(telegram_user_id, message)
 
         else:
-            print("Telegram user ID not found in session metadata or Failed to retrieve Bubble unique ID")
-            send_telegram_message(telegram_user_id, "Something went wrong. Please contact support at admin@tryinfluencerai.com")
+            logging.warning("Missing metadata or Bubble unique ID")
+            if telegram_user_id:
+                send_telegram_message(telegram_user_id, "Something went wrong. Please contact support at admin@tryinfluencerai.com")
+            else:
+                logging.error("Telegram user ID not found in session metadata.")
 
     return '', 200
 
