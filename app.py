@@ -73,7 +73,11 @@ def stripe_webhook():
                 return '', 200
                     
             stripe_subscription_id = subscription.get('id')
-            subscription_plan = subscription.get('items').get('data')[0].get('plan').get('nickname')  # Adjust based on actual Stripe response structure
+            items = subscription.get('items', {}).get('data')
+            if items and len(items) > 0:
+                subscription_plan = items[0].get('plan', {}).get('nickname', 'No plan nickname')
+            else:
+                subscription_plan = 'No plan nickname'  # Fallback value or handle error
             status = subscription.get('status')
             current_period_start = subscription.get('current_period_start')
             current_period_end = subscription.get('current_period_end')
