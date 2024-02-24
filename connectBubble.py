@@ -190,7 +190,7 @@ def add_subscription(user_uid, telegram_user_id, influencer_uid, subscription_ID
         print(f"Subscription {sub_id} added successfully")
         
         # Append subscription to user's list of subscriptions
-        response = bubbledb.add_to_database_list(user_uid, "User", "subscriptions", sub_id)
+        response = bubbledb.add_to_database_list(user_uid, "User", "subscriptions", [sub_id])
         if response:
             print("Subscription added to user's list successfully.")
             return True
