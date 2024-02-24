@@ -51,6 +51,11 @@ def stripe_webhook():
         bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
         #bubble_unique_id = '1705089991492x506710590267403400'
 
+        if not bubble_unique_id:
+            print("Bubble unique ID not found.")
+            # Handle error, maybe send a message back to user
+            return '', 200
+
         if session.get('subscription'):
             print("Subscription started, will be handled in 'customer.subscription.created'.")
         else:
