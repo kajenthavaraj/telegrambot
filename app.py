@@ -46,30 +46,25 @@ def stripe_webhook():
         metadata = session.get('metadata', {})
         telegram_user_id = metadata.get('telegram_user_id')
         influencer_id = CONSTANTS.BOT_USERNAME # Example; adjust as needed
-
-        if telegram_user_id:
-            credits_purchased = calculate_credits(session)
-
-            message = f"Thank you for your purchase! You have successfully bought {credits_purchased} credits"
-            send_telegram_message(telegram_user_id, message)
-        else:
-            print("Telegram user ID not found in session metadata.")
-        
-        print(f"Attempting to retrieve Bubble unique ID for Telegram user ID: {telegram_user_id} and Influencer ID: {influencer_id}")
         bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
-    
         #bubble_unique_id = '1705089991492x506710590267403400'
-        
-        if bubble_unique_id:
+
+        if telegram_user_id and bubble_unique_id:
             credits_purchased = calculate_credits(session)
+            amount_paid = session.get('amount_total') / 100
+            currency = session.get('currency').upper()
 
             # Now you can update the credits in Bubble using this unique ID
             update_minutes_credits(bubble_unique_id, credits_purchased)
-            # Send confirmation message to Telegram
-            send_telegram_message(telegram_user_id, "Your purchase was successful!")
+
+            message = (f"Thank you for your purchase! "
+               f"You have successfully bought {credits_purchased} credits "
+               f"for {amount_paid} {currency}.")
+            send_telegram_message(telegram_user_id, message)
+
         else:
-            # Handle case where the unique Bubble ID couldn't be retrieved
-            print("Failed to retrieve Bubble unique ID")
+            print("Telegram user ID not found in session metadata or Failed to retrieve Bubble unique ID")
+            send_telegram_message(telegram_user_id, "Something went wrong. Please contact support at admin@tryinfluencerai.com")
 
     return '', 200
 
@@ -85,17 +80,6 @@ def send_telegram_message(telegram_user_id, message):
         print("Message sent successfully")
     else:
         print(f"Failed to send message: {response.text}")
-
-
-def update_credits_in_bubble(user_id, credits):
-    url = f"{BUBBLE_API_URL}/{user_id}"  # URL to the specific user object in Bubble
-    headers = {
-        "Authorization": f"Bearer {BUBBLE_API_TOKEN}",
-        "Content-Type": "application/json"
-    }
-    data = {"credits": credits}  # Assuming 'credits' is the field to update
-    response = requests.patch(url, json=data, headers=headers)
-    return response.status_code == 200
 
 
 def calculate_credits(session):
