@@ -104,6 +104,8 @@ def handle_subscription_created(event):
     influencer_id = CONSTANTS.BOT_USERNAME 
     bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
 
+    print("The telegram ID is: ", telegram_user_id)
+
     if not bubble_unique_id:
         print("Bubble unique ID not found after calling the handle function.")
         # Handle error, maybe send a message back to user
