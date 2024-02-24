@@ -3,6 +3,7 @@ import requests
 import bubbledb
 import phonenumbers
 import loginuser
+import json
 
 import CONSTANTS
 
@@ -208,15 +209,29 @@ def check_user_subscriptions(bubble_unique_id):
     if user_data == 404:
         print("User not found or error fetching user data.")
         return False  # Or handle this case as needed
+    
+    print("User data:", user_data)
 
-    # Assuming the user's subscriptions are stored under a field named "subscriptions"
-    # And each subscription in the list has a "status" field indicating if it's active
-    subscriptions = user_data.get('subscriptions', [])
+    subscriptions_str = user_data.get('subscriptions', '[]')  # Default to an empty list representation if not found
+
+    # Print the raw subscriptions data to see its format
+    print("Raw subscriptions data:", subscriptions_str)
+
+
+    try:
+        # Attempt to parse the subscriptions data as JSON
+        subscriptions = json.loads(subscriptions_str)
+        # Print the parsed subscriptions to confirm successful parsing
+        print("Parsed subscriptions:", subscriptions)
+    except json.JSONDecodeError as e:
+        print(f"Error decoding subscriptions JSON: {e}")
+        return False
+
     active_subscriptions = [sub for sub in subscriptions if sub.get('status') == 'active']
 
     if active_subscriptions:
         print("User has active subscriptions.")
-        return True  # Or return active_subscriptions for more detailed info
+        return True  # Or you might want to return active_subscriptions itself for more detail
     else:
         print("User does not have active subscriptions.")
         return False
