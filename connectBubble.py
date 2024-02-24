@@ -203,35 +203,30 @@ def add_subscription(user_uid, telegram_user_id, influencer_uid, subscription_ID
 
 
 def check_user_subscriptions(bubble_unique_id):
-    
-    user_data = bubbledb.get_data(bubble_unique_id, "User")  
+    user_data = bubbledb.get_data(bubble_unique_id, "User")
 
     if user_data == 404:
         print("User not found or error fetching user data.")
-        return False  # Or handle this case as needed
-    
-    print("User data:", user_data)
-
-    subscriptions_str = user_data.get('subscriptions', '[]')  # Default to an empty list representation if not found
-
-    # Print the raw subscriptions data to see its format
-    print("Raw subscriptions data:", subscriptions_str)
-
-
-    try:
-        # Attempt to parse the subscriptions data as JSON
-        subscriptions = json.loads(subscriptions_str)
-        # Print the parsed subscriptions to confirm successful parsing
-        print("Parsed subscriptions:", subscriptions)
-    except json.JSONDecodeError as e:
-        print(f"Error decoding subscriptions JSON: {e}")
         return False
 
-    active_subscriptions = [sub for sub in subscriptions if sub.get('status') == 'active']
+    # Directly use the 'subscriptions' list from user_data
+    subscriptions_ids = user_data.get('subscriptions', [])
+    print("Subscriptions IDs:", subscriptions_ids)
+
+    if not subscriptions_ids:
+        print("User does not have active subscriptions.")
+        return False
+
+    # If needed, fetch each subscription's details using its ID
+    active_subscriptions = []
+    for sub_id in subscriptions_ids:
+        sub_data = bubbledb.get_data(sub_id, "Subscription")  # Assuming this is how you fetch individual subscription data
+        if sub_data != 404 and sub_data.get('status') == 'active':
+            active_subscriptions.append(sub_data)
 
     if active_subscriptions:
         print("User has active subscriptions.")
-        return True  # Or you might want to return active_subscriptions itself for more detail
+        return True  # Or return active_subscriptions for more detailed info
     else:
         print("User does not have active subscriptions.")
         return False
