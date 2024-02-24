@@ -4,7 +4,7 @@ import requests
 from typing import Final
 from connectBubble import update_minutes_credits, update_chat_credits
 from database import get_bubble_unique_id
-
+import CONSTANTS
 
 # Flask app setup
 app = Flask(__name__)
@@ -19,7 +19,6 @@ endpoint_secret = 'whsec_xtHqX4aEuAlh8kYH8Wcp90sQeENaUS52' # this is the test ve
 
 # Telegram setup
 BOT_TOKEN = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"  
-BOT_USERNAME: Final = "@veronicaavluvaibot"
 
 # Bubble setup
 BUBBLE_API_URL = "https://app.tryinfluencerai.com/api/1.1/obj/"  
@@ -46,7 +45,7 @@ def stripe_webhook():
         # Assume you have telegram_user_id and influencer_id in metadata
         metadata = session.get('metadata', {})
         telegram_user_id = metadata.get('telegram_user_id')
-        influencer_id = 'veronicaavluvaibot'  # Example; adjust as needed
+        influencer_id = CONSTANTS.BOT_USERNAME # Example; adjust as needed
 
         if telegram_user_id:
             credits_purchased = calculate_credits(session)
