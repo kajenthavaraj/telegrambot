@@ -79,12 +79,18 @@ def stripe_webhook():
             else:
                 subscription_plan = 'No plan nickname'  # Fallback value or handle error
             status = subscription.get('status')
+
             current_period_start = subscription.get('current_period_start')
             current_period_end = subscription.get('current_period_end')
+
+            # Check if current_period_start and current_period_end are not None before converting
+            if current_period_start is not None and current_period_end is not None:
+                last_billing_date = datetime.utcfromtimestamp(current_period_start).strftime('%Y-%m-%d')
+                next_billing_date = datetime.utcfromtimestamp(current_period_end).strftime('%Y-%m-%d')
+            else:
+                last_billing_date = 'Unknown'
+                next_billing_date = 'Unknown'
                     
-            # Convert timestamps to readable dates
-            last_billing_date = datetime.utcfromtimestamp(current_period_start).strftime('%Y-%m-%d')
-            next_billing_date = datetime.utcfromtimestamp(current_period_end).strftime('%Y-%m-%d')
 
             # Check if a subscription already exists for the user
             existing_subscriptions = check_user_subscriptions(bubble_unique_id)  # You'll need to implement this function
