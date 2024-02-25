@@ -166,7 +166,7 @@ def add_entry(data_type, data):
 def update_entry(user_id, data_type, field_name, new_value):
     # API call to Bubble to update a specific field of a data type for a given user
     # Construct the API URL
-    bubble_url = f"{DATA_URL}{data_type}"
+    bubble_url = f"{DATA_URL}{data_type}/{user_id}"
 
     # Prepare the data for the PATCH request
     data = {

@@ -188,7 +188,7 @@ def add_subscription(user_uid, telegram_user_id, influencer_uid, subscription_ID
 
         # Update the user's subscription field with the new subscription ID
         print(f"Updating user {user_uid} with new subscription ID...")
-        response = bubbledb.update_entry(user_uid, "User", "subscription_telegram", sub_id)  # Ensure field names match your Bubble setup
+        response = bubbledb.update_database(user_uid, "User", "subscription_telegram", sub_id)  # Ensure field names match your Bubble setup
 
         if response:  # Assuming response is truthy on success, adjust based on your API's actual response
             print("User's subscription updated successfully.")
