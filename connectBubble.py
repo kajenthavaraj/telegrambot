@@ -169,13 +169,10 @@ def add_subscription(user_uid, telegram_user_id, influencer_uid, subscription_ID
 
     # Prepare the data for the subscription
     data = {
-        "credits_used": 0,
-        "fan_description": "none",
         "influencer": "1703781501800x144651846935042620", #this is the unique ID for veronica
-        "minutes_spent": 0,
         "telegram_user_id": telegram_user_id,
         "user": user_uid, 
-        "subscription_ID": subscription_ID,
+        "subscription_id": subscription_ID,
         "subscription_plan": subscription_plan,
         "status": status,
         "last_billing_date": last_billing_date,
@@ -183,23 +180,21 @@ def add_subscription(user_uid, telegram_user_id, influencer_uid, subscription_ID
     }
     
     # Attempt to create the subscription entry in Bubble
-    sub_id = bubbledb.add_entry("subscription", data)
+    sub_id = bubbledb.add_entry("Subscription_telegram", data)  # Ensure this matches your actual data type name in Bubble
     print(f"Response from Bubble for subscription creation: {sub_id}")
 
-    # Check if the subscription was successfully created
     if isinstance(sub_id, str):
         print(f"Subscription {sub_id} added successfully.")
-        
-        # Attempt to append the subscription to the user's list of subscriptions
-        print(f"Attempting to append subscription {sub_id} to user {user_uid}'s subscription list...")
-        response = bubbledb.add_to_database_list(user_uid, "User", "subscriptions", [sub_id])
-        print(f"Response from Bubble for appending subscription to user's list: {response}")
 
-        if response == 204:
-            print("Subscription added to user's list successfully.")
+        # Update the user's subscription field with the new subscription ID
+        print(f"Updating user {user_uid} with new subscription ID...")
+        response = bubbledb.update_entry(user_uid, "User", "subscription_telegram", sub_id)  # Ensure field names match your Bubble setup
+
+        if response:  # Assuming response is truthy on success, adjust based on your API's actual response
+            print("User's subscription updated successfully.")
             return True
         else:
-            print("Failed to append subscription to user's list. Response code: ", response)
+            print("Failed to update user's subscription in Bubble.")
             return False
     else:
         print("Failed to create subscription entry in Bubble. Ensure the data is correct and matches Bubble's expected schema.")
@@ -208,32 +203,33 @@ def add_subscription(user_uid, telegram_user_id, influencer_uid, subscription_ID
 
 
 def check_user_subscriptions(bubble_unique_id):
-    user_data = bubbledb.get_data(bubble_unique_id, "User")
+    data_type = "User"
+    user_data = bubbledb.get_data(bubble_unique_id, data_type)
 
     if user_data == 404:
         print("User not found or error fetching user data.")
         return False
 
     # Directly use the 'subscriptions' list from user_data
-    subscriptions_ids = user_data.get('subscriptions', [])
-    print("Subscriptions IDs:", subscriptions_ids)
+    subscription_id = user_data.get('subscription_telegram', None)
+    print("Subscription ID:", subscription_id)
 
-    if not subscriptions_ids:
-        print("User does not have active subscriptions.")
+    if not subscription_id:
+        print("User does not have an active subscription.")
         return False
 
-    # If needed, fetch each subscription's details using its ID
-    active_subscriptions = []
-    for sub_id in subscriptions_ids:
-        sub_data = bubbledb.get_data(sub_id, "Subscription")  # Assuming this is how you fetch individual subscription data
-        if sub_data != 404 and sub_data.get('status') == 'complete':
-            active_subscriptions.append(sub_data)
+    # Fetch the subscription's details using its ID
+    sub_data = bubbledb.get_data(subscription_id, "Subscription_telegram")  # Adjust the data type if necessary
+    if sub_data == 404:
+        print("Subscription data not found or error fetching subscription data.")
+        return False
 
-    if active_subscriptions:
-        print("User has active subscriptions.")
-        return True  # Or return active_subscriptions for more detailed info
+    # Check if the subscription is active based on its status
+    if sub_data.get('status') in ['active', 'trialing']:
+        print("User has an active subscription.")
+        return True  # Can also return sub_data for more details if needed
     else:
-        print("User does not have active subscriptions.")
+        print("User does not have an active subscription.")
         return False
 
 

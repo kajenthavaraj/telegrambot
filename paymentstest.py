@@ -63,54 +63,62 @@ async def purchase(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text('Please choose the duration you’d like to purchase:', reply_markup=reply_markup)
 
 async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    keyboard = [
-        [InlineKeyboardButton("Monthly - $24.99", callback_data='subscribe_monthly')],
-        [InlineKeyboardButton("Yearly - $249", callback_data='subscribe_yearly')]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text('Choose your subscription plan:', reply_markup=reply_markup)
+    influencer_id = CONSTANTS.BOT_USERNAME 
+    user_id = str(update.effective_user.id)
+
+
+    bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
+    print(bubble_unique_id)
+
+    if not bubble_unique_id:
+            print("Bubble unique ID not found")
+
+
+    existing_subscriptions = check_user_subscriptions(bubble_unique_id) 
+    print (existing_subscriptions)
+
+    if existing_subscriptions:
+        print("User already has an active subscription.")
+        message = "You already have an active subscription."
+        return await update.message.reply_text(message)
+
+    else:
+        keyboard = [
+            [InlineKeyboardButton("Monthly - $24.99", callback_data='subscribe_monthly')],
+            [InlineKeyboardButton("Yearly - $249", callback_data='subscribe_yearly')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text('Choose your subscription plan:', reply_markup=reply_markup)
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
     user_id = str(update.effective_user.id)
 
-    influencer_id = CONSTANTS.BOT_USERNAME 
-
-
-    bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
-
-    if not bubble_unique_id:
-            print("Bubble unique ID not found")
-
+    
     if query.data.startswith('subscribe'):
-        existing_subscriptions = check_user_subscriptions(bubble_unique_id) 
-        if existing_subscriptions:
-            print("User already has an active subscription.")
-            message = "You already have an active subscription."
-        else:
-            # Subscription handling logic
-            if query.data == 'subscribe_monthly':
-                price_id = 'price_1OnAcnBo1ZNr3GjAKryjcBaa'  # Replace with your Stripe price ID
-            elif query.data == 'subscribe_yearly':
-                price_id = 'price_1OnAe8Bo1ZNr3GjAvMXybMlU'  # Replace with your Stripe price ID
+        # Subscription handling logic
+        if query.data == 'subscribe_monthly':
+            price_id = 'price_1OnAcnBo1ZNr3GjAKryjcBaa'  # Replace with your Stripe price ID
+        elif query.data == 'subscribe_yearly':
+            price_id = 'price_1OnAe8Bo1ZNr3GjAvMXybMlU'  # Replace with your Stripe price ID
 
-            # Create a Stripe Checkout Session for subscription
-            checkout_session = stripe.checkout.Session.create(
-                payment_method_types=['card'],
-                line_items=[{
-                    'price': price_id,
-                    'quantity': 1,
-                }],
-                mode='subscription',
-                success_url='https://t.me/veronicaavluvaibot?start=subscription_successful',
-                cancel_url='https://t.me/veronicaavluvaibot?start=subscription_canceled',
-                metadata={'telegram_user_id': user_id},  # Pass in metadata to identify the user
-            )
+        # Create a Stripe Checkout Session for subscription
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price': price_id,
+                'quantity': 1,
+            }],
+            mode='subscription',
+            success_url='https://t.me/veronicaavluvaibot?start=subscription_successful',
+            cancel_url='https://t.me/veronicaavluvaibot?start=subscription_canceled',
+            metadata={'telegram_user_id': user_id},  # Pass in metadata to identify the user
+        )
 
-            keyboard = [[InlineKeyboardButton("Complete Subscription", url=checkout_session.url)]]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            await context.bot.send_message(chat_id=query.message.chat_id, text="Please complete your subscription:", reply_markup=reply_markup)
+        keyboard = [[InlineKeyboardButton("Complete Subscription", url=checkout_session.url)]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await context.bot.send_message(chat_id=query.message.chat_id, text="Please complete your subscription:", reply_markup=reply_markup)
     else:
         # One-off payment handling logic
         duration_minutes = int(query.data)  # This is based on the callback_data set in the InlineKeyboardButton
