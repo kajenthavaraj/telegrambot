@@ -225,7 +225,7 @@ def check_user_subscriptions(bubble_unique_id):
         return False
 
     # Check if the subscription is active based on its status
-    if sub_data.get('status') in ['active', 'trialing']:
+    if sub_data.get('status') in ['complete', 'trialing']:
         print("User has an active subscription.")
         return True  # Can also return sub_data for more details if needed
     else:
