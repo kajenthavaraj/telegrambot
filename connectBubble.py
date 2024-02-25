@@ -180,7 +180,7 @@ def add_subscription(user_uid, telegram_user_id, influencer_uid, subscription_ID
     }
     
     # Attempt to create the subscription entry in Bubble
-    sub_id = bubbledb.add_entry("Subscription_telegram", data)  # Ensure this matches your actual data type name in Bubble
+    sub_id = bubbledb.add_entry("subscription_telegram", data)  # Ensure this matches your actual data type name in Bubble
     print(f"Response from Bubble for subscription creation: {sub_id}")
 
     if isinstance(sub_id, str):
