@@ -169,7 +169,7 @@ def add_subscription(user_uid, telegram_user_id, influencer_uid, subscription_ID
 
     # Prepare the data for the subscription
     data = {
-        "influencer": "1703781501800x144651846935042620", #this is the unique ID for veronica
+        "influencer_ID": "1703781501800x144651846935042620", #this is the unique ID for veronica
         "telegram_user_id": telegram_user_id,
         "user": user_uid, 
         "subscription_id": subscription_ID,
