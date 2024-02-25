@@ -89,6 +89,8 @@ def stripe_webhook():
 
                 current_period_start = subscription['current_period_start']
                 current_period_end = subscription['current_period_end']
+                print(f"Current Period Start (UNIX): {current_period_start}, Current Period End (UNIX): {current_period_end}")
+
 
                 # Check if current_period_start and current_period_end are not None before converting
                 if current_period_start is not None and current_period_end is not None:
