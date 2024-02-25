@@ -174,10 +174,8 @@ def update_entry(user_id, data_type, field_name, new_value):
     }
 
     # Set headers, including API Token if required
-    headers = {
-        "Authorization": "Bearer YOUR_API_TOKEN",
-        "Content-Type": "application/json"
-    }
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+
 
     # Make the PATCH request to Bubble's API
     response = requests.patch(bubble_url, json=data, headers=headers)
