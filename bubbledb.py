@@ -163,29 +163,6 @@ def add_entry(data_type, data):
         print(f"Error creating subscription in Bubble: {response.status_code} - {response.text}")
         return -1
     
-def update_entry(user_id, data_type, field_name, new_value):
-    # API call to Bubble to update a specific field of a data type for a given user
-    # Construct the API URL
-    bubble_url = f"{DATA_URL}{data_type}/{user_id}"
-
-    # Prepare the data for the PATCH request
-    data = {
-        field_name: new_value
-    }
-
-    # Set headers, including API Token if required
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-
-
-    # Make the PATCH request to Bubble's API
-    response = requests.patch(bubble_url, json=data, headers=headers)
-
-    # Check response status and return accordingly
-    if response.status_code == 200:
-        return True  # or return response.json() for more detailed response
-    else:
-        print(f"Error updating entry: {response.text}")
-        return False
 
 
 # if __name__ == "__main__":
