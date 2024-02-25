@@ -226,7 +226,7 @@ def check_user_subscriptions(bubble_unique_id):
     active_subscriptions = []
     for sub_id in subscriptions_ids:
         sub_data = bubbledb.get_data(sub_id, "Subscription")  # Assuming this is how you fetch individual subscription data
-        if sub_data != 404 and sub_data.get('status') == 'active':
+        if sub_data != 404 and sub_data.get('status') == 'complete':
             active_subscriptions.append(sub_data)
 
     if active_subscriptions:
