@@ -105,6 +105,7 @@ def stripe_webhook():
             if existing_subscriptions:
                 print("User already has an active subscription.")
                 message = "You already have an active subscription."
+
             else:
                 # Add the new subscription to Bubble
                 success = add_subscription(
@@ -119,7 +120,8 @@ def stripe_webhook():
                     print("Failed to add subscription")
                     message = "Failed to add subscription. Please contact support."
 
-                send_telegram_message(telegram_user_id, message)
+            send_telegram_message(telegram_user_id, message)
+        
         else:
             if telegram_user_id and bubble_unique_id:
                 credits_purchased = calculate_credits(session)
