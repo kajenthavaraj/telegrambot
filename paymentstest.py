@@ -68,7 +68,7 @@ async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
     bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
-    print(bubble_unique_id)
+    print("The bubble ID is: ", bubble_unique_id)
 
     if not bubble_unique_id:
             print("Bubble unique ID not found")
