@@ -47,7 +47,8 @@ def stripe_webhook():
         
         metadata = session.get('metadata', {})
         telegram_user_id = metadata.get('telegram_user_id')
-        influencer_id = CONSTANTS.BOT_USERNAME 
+        influencer_id = CONSTANTS.BOT_USERNAME
+        influencer_UID = CONSTANTS.IUFLUENCER_UID 
         bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
         #bubble_unique_id = '1705089991492x506710590267403400'
 
@@ -63,16 +64,7 @@ def stripe_webhook():
             telegram_user_id = metadata.get('telegram_user_id')
             subscription_id = session.get('subscription')
 
-
-            influencer_id = CONSTANTS.BOT_USERNAME 
-            bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
-
             print("The telegram ID is: ", telegram_user_id)
-
-            if not bubble_unique_id:
-                print("Bubble unique ID not found after calling the handle function.")
-                # Handle error, maybe send a message back to user
-                return '', 200
                     
             stripe_subscription_id = subscription.get('id')
             items = subscription.get('items', {}).get('data')
@@ -105,7 +97,7 @@ def stripe_webhook():
 
                 
             # Check if a subscription already exists for the user
-            existing_subscriptions = check_user_subscription(bubble_unique_id, influencer_id) 
+            existing_subscriptions = check_user_subscription(bubble_unique_id, influencer_UID) 
             if existing_subscriptions:
                 print("User already has an active subscription.")
                 message = "You already have an active subscription."

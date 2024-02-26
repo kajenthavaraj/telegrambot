@@ -65,6 +65,7 @@ async def purchase(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     influencer_id = CONSTANTS.BOT_USERNAME 
+    influencer_UID = CONSTANTS.IUFLUENCER_UID
     user_id = str(update.effective_user.id)
 
 
@@ -75,7 +76,7 @@ async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             print("Bubble unique ID not found")
 
 
-    existing_subscriptions = check_user_subscription(bubble_unique_id, influencer_id) 
+    existing_subscriptions = check_user_subscription(bubble_unique_id, influencer_UID) 
     print (existing_subscriptions)
 
     if existing_subscriptions:
@@ -100,7 +101,7 @@ async def manage_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE
         await update.message.reply_text("Error retrieving your subscription information. Please try again.")
         return
 
-    existing_subscription = check_user_subscription(bubble_unique_id, influencer_id)
+    existing_subscription = check_user_subscription(bubble_unique_id, influencer_UID)
     
     if existing_subscription:
         # User has an active subscription
