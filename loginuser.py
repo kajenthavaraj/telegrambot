@@ -52,7 +52,7 @@ def send_verification_code(phone_number:str, code) -> bool:
         message = client.messages.create(
             to=phone_number,
             from_="19042176537",
-            body=f"Your verification code is {code}")
+            body=f"Your InfluencerAI verification code is {code}")
 
         print(message.sid)
 
