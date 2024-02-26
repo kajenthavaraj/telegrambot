@@ -2,7 +2,7 @@ from flask import Flask, request, abort
 import stripe
 import requests
 from typing import Final
-from connectBubble import update_minutes_credits, add_subscription, check_user_subscriptions
+from connectBubble import update_minutes_credits, update_subscription, check_user_subscription
 from database import get_bubble_unique_id
 import CONSTANTS
 import logging
@@ -105,14 +105,14 @@ def stripe_webhook():
 
                 
             # Check if a subscription already exists for the user
-            existing_subscriptions = check_user_subscriptions(bubble_unique_id) 
+            existing_subscriptions = check_user_subscription(bubble_unique_id) 
             if existing_subscriptions:
                 print("User already has an active subscription.")
                 message = "You already have an active subscription."
 
             else:
                 # Add the new subscription to Bubble
-                success = add_subscription(
+                success = update_subscription(
                     bubble_unique_id, telegram_user_id, influencer_id, stripe_subscription_id,
                     subscription_plan, status, last_billing_date, next_billing_date
                 )

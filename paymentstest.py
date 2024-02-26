@@ -10,7 +10,7 @@ import json
 import stripe 
 import CONSTANTS
 from database import get_bubble_unique_id
-from connectBubble import check_user_subscriptions, get_user_subscription
+from connectBubble import get_user_subscription
 
 
 import openai
