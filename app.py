@@ -105,7 +105,7 @@ def stripe_webhook():
 
                 
             # Check if a subscription already exists for the user
-            existing_subscriptions = check_user_subscription(bubble_unique_id) 
+            existing_subscriptions = check_user_subscription(bubble_unique_id, influencer_id) 
             if existing_subscriptions:
                 print("User already has an active subscription.")
                 message = "You already have an active subscription."

@@ -10,7 +10,7 @@ import json
 import stripe 
 import CONSTANTS
 from database import get_bubble_unique_id
-from connectBubble import get_user_subscription
+from connectBubble import get_user_subscription, check_user_subscription
 
 
 import openai
@@ -75,7 +75,7 @@ async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             print("Bubble unique ID not found")
 
 
-    existing_subscriptions = check_user_subscriptions(bubble_unique_id) 
+    existing_subscriptions = check_user_subscription(bubble_unique_id, influencer_id) 
     print (existing_subscriptions)
 
     if existing_subscriptions:
@@ -100,7 +100,7 @@ async def manage_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE
         await update.message.reply_text("Error retrieving your subscription information. Please try again.")
         return
 
-    existing_subscription = check_user_subscriptions(bubble_unique_id)
+    existing_subscription = check_user_subscription(bubble_unique_id, influencer_id)
     
     if existing_subscription:
         # User has an active subscription
