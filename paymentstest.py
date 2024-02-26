@@ -2,6 +2,7 @@ from typing import Final
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, LabeledPrice, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, Updater, CallbackContext, CallbackQueryHandler
 from telegram.ext import PreCheckoutQueryHandler
+from bubbledb import update_database
 import asyncio
 import time
 import requests
@@ -9,7 +10,7 @@ import json
 import stripe 
 import CONSTANTS
 from database import get_bubble_unique_id
-from connectBubble import check_user_subscriptions
+from connectBubble import check_user_subscriptions, get_user_subscriptions
 
 
 import openai
@@ -90,6 +91,61 @@ async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text('Choose your subscription plan:', reply_markup=reply_markup)
 
+async def manage_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = str(update.effective_user.id)
+    influencer_id = CONSTANTS.BOT_USERNAME
+    bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
+
+    if not bubble_unique_id:
+        await update.message.reply_text("Error retrieving your subscription information. Please try again.")
+        return
+
+    existing_subscription = check_user_subscriptions(bubble_unique_id)
+    
+    if existing_subscription:
+        # User has an active subscription
+        keyboard = [
+            [InlineKeyboardButton("Cancel Subscription", callback_data='cancel_subscription')],
+            [InlineKeyboardButton("Upgrade Subscription", callback_data='upgrade_subscription')],
+            [InlineKeyboardButton("Downgrade Subscription", callback_data='downgrade_subscription')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text('Manage your subscription:', reply_markup=reply_markup)
+    else:
+        # User does not have an active subscription
+        await update.message.reply_text("You currently do not have an active subscription. Please use /subscribe to subscribe.")
+
+async def handle_subscription_cancellation(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+    bubble_unique_id = get_bubble_unique_id(CONSTANTS.BOT_USERNAME, user_id)
+
+    # Here, you would retrieve the subscription ID from Bubble based on the user's unique ID
+    # For this example, let's assume you have a function that does this
+    subscription_id_in_bubble, stripe_subscription_id = get_user_subscriptions(bubble_unique_id)
+
+    if not stripe_subscription_id:
+        await update.message.reply_text("You do not have an active subscription to cancel.")
+        return
+
+    # Cancel the subscription with Stripe
+    if cancel_stripe_subscription(stripe_subscription_id):
+        # If successful, update the status in Bubble
+        if update_database(subscription_id_in_bubble, "Subscription_telegram", "status", "cancelled") == 204:
+            await update.message.reply_text("Your subscription has been successfully cancelled.")
+        else:
+            await update.message.reply_text("Failed to update subscription status in our system. Please contact support.")
+    else:
+        await update.message.reply_text("Failed to cancel the subscription with Stripe. Please contact support.")
+
+
+def cancel_stripe_subscription(subscription_id):
+    try:
+        stripe.Subscription.delete(subscription_id)
+        return True
+    except Exception as e:
+        print(f"Error canceling subscription with Stripe: {e}")
+        return False
+
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
@@ -159,6 +215,8 @@ def main():
 
     application.add_handler(CommandHandler("payments", purchase))
     application.add_handler(CommandHandler("subscribe", subscribe))
+    application.add_handler(CommandHandler("manage", manage_subscription))
+
 
     application.add_handler(CallbackQueryHandler(button))
 

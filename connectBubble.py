@@ -232,6 +232,41 @@ def check_user_subscriptions(bubble_unique_id):
         print("User does not have an active subscription.")
         return False
 
+def get_user_subscriptions(bubble_unique_id):
+    data_type = "User"
+    user_data = bubbledb.get_data(bubble_unique_id, data_type)
+
+    if user_data == 404:
+        print("User not found or error fetching user data.")
+        return None, None  # Indicates that user data could not be fetched
+
+    # Directly use the 'subscription_telegram' field from user_data
+    subscription_id = user_data.get('subscription_telegram', None)
+
+    if not subscription_id:
+        print("User does not have an active subscription.")
+        return None, None  # User has no active subscription
+
+    # Fetch the subscription's details using its ID
+    sub_data = bubbledb.get_data(subscription_id, "Subscription_telegram")
+    if sub_data == 404:
+        print("Subscription data not found or error fetching subscription data.")
+        return None, None  # Subscription data could not be fetched
+
+    # Assuming 'stripe_subscription_id' is stored within the subscription data
+    stripe_subscription_id = sub_data.get('stripe_subscription_id', None)
+    if not stripe_subscription_id:
+        print("Stripe subscription ID not found.")
+        return None, None  # Stripe subscription ID could not be found
+
+    # Check if the subscription is active based on its status
+    if sub_data.get('status') in ['active', 'trialing']:
+        print("User has an active subscription.")
+        return subscription_id, stripe_subscription_id
+    else:
+        print("User does not have an active subscription.")
+        return None, None  # Subscription is not active
+
 
 
 # Functions for getting user's first name
