@@ -105,7 +105,7 @@ def stripe_webhook():
             else:
                 # Add the new subscription to Bubble
                 success = update_subscription(
-                    bubble_unique_id, telegram_user_id, influencer_id, stripe_subscription_id,
+                    bubble_unique_id, telegram_user_id, influencer_UID, stripe_subscription_id,
                     subscription_plan, status, last_billing_date, next_billing_date
                 )
 
