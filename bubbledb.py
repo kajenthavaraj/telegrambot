@@ -83,6 +83,30 @@ def get_data_field(unique_id, data_type, field_name):
         return lead_list
     else:
         return "fail 404 error"
+    
+
+def get_subscription_id(user_uid, influencer_uid):
+    # Define the data type for your subscription data
+    data_type = "subscription"
+    # Define the keys, values, and constraint types for the search
+    keys = ["user", "influencer"]
+    values = [user_uid, influencer_uid]
+    constraint_types = ["equals", "equals"]
+    
+    # Use the get_data_list function to search for the subscription
+    subscriptions = get_data_list(data_type, keys, values, constraint_types)
+    
+    # Check if the response contains a subscription ID
+    if subscriptions != 404 and subscriptions:
+        # Assuming that there is only one subscription per user-influencer pair
+        # and the 'id' field is what you want
+        subscription_id = subscriptions[0]['id']
+        print(f"Found subscription ID: {subscription_id}")
+        return subscription_id
+    else:
+        print("No subscription found or there was an error in the request.")
+        return None
+
 
 # Updates the database with a new value
 def update_database(unique_id, data_type, field_name, new_value, **kwargs):

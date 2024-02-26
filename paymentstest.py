@@ -10,7 +10,7 @@ import json
 import stripe 
 import CONSTANTS
 from database import get_bubble_unique_id
-from connectBubble import check_user_subscriptions, get_user_subscriptions
+from connectBubble import check_user_subscriptions, get_user_subscription
 
 
 import openai
@@ -116,26 +116,33 @@ async def manage_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE
         await update.message.reply_text("You currently do not have an active subscription. Please use /subscribe to subscribe.")
 
 async def handle_subscription_cancellation(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
+    query = update.callback_query
+    user_id = str(query.from_user.id)
+    print(f"Handling subscription cancellation for user ID: {user_id}")
+
     bubble_unique_id = get_bubble_unique_id(CONSTANTS.BOT_USERNAME, user_id)
+    print(f"Bubble unique ID retrieved: {bubble_unique_id}")
 
-    # Here, you would retrieve the subscription ID from Bubble based on the user's unique ID
-    # For this example, let's assume you have a function that does this
-    subscription_id_in_bubble, stripe_subscription_id = get_user_subscriptions(bubble_unique_id)
+    # Retrieve the subscription ID, which is also the Stripe subscription ID
+    subscription_id = get_user_subscription(bubble_unique_id)
+    print(f"Subscription ID (also Stripe ID): {subscription_id}")
 
-    if not stripe_subscription_id:
-        await update.message.reply_text("You do not have an active subscription to cancel.")
+    if not subscription_id:
+        print("No active subscription found.")
+        await query.edit_message_text("You do not have an active subscription to cancel.")
         return
 
     # Cancel the subscription with Stripe
-    if cancel_stripe_subscription(stripe_subscription_id):
+    if cancel_stripe_subscription(subscription_id):
+        print("Stripe subscription cancelled successfully.")
         # If successful, update the status in Bubble
-        if update_database(subscription_id_in_bubble, "Subscription_telegram", "status", "cancelled") == 204:
-            await update.message.reply_text("Your subscription has been successfully cancelled.")
+        if update_database(bubble_unique_id, "User", "subscription_telegram", None) == 204:
+            await query.edit_message_text("Your subscription has been successfully cancelled.")
         else:
-            await update.message.reply_text("Failed to update subscription status in our system. Please contact support.")
+            await query.edit_message_text("Failed to update subscription status in our system. Please contact support.")
     else:
-        await update.message.reply_text("Failed to cancel the subscription with Stripe. Please contact support.")
+        print("Failed to cancel the subscription with Stripe.")
+        await query.edit_message_text("Failed to cancel the subscription with Stripe. Please contact support.")
 
 
 def cancel_stripe_subscription(subscription_id):
@@ -152,12 +159,25 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = str(update.effective_user.id)
 
     
-    if query.data.startswith('subscribe'):
+    if query.data.startswith('subscribe') or query.data in ['cancel_subscription', 'upgrade_subscription', 'downgrade_subscription']:
         # Subscription handling logic
         if query.data == 'subscribe_monthly':
             price_id = 'price_1OnAcnBo1ZNr3GjAKryjcBaa'  # Replace with your Stripe price ID
         elif query.data == 'subscribe_yearly':
             price_id = 'price_1OnAe8Bo1ZNr3GjAvMXybMlU'  # Replace with your Stripe price ID
+
+        elif query.data == 'cancel_subscription':
+            # Call your function to handle subscription cancellation
+            await handle_subscription_cancellation(update, context)
+            return
+        elif query.data == 'upgrade_subscription':
+            # Handle subscription upgrade
+            # You'll need to implement this part
+            return
+        elif query.data == 'downgrade_subscription':
+            # Handle subscription downgrade
+            # You'll need to implement this part
+            return
 
         # Create a Stripe Checkout Session for subscription
         checkout_session = stripe.checkout.Session.create(
