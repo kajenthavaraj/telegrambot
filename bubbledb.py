@@ -86,26 +86,31 @@ def get_data_field(unique_id, data_type, field_name):
     
 
 def get_subscription_id(user_uid, influencer_uid):
-    # Define the data type for your subscription data
-    data_type = "subscription"
-    # Define the keys, values, and constraint types for the search
+    data_type = "Subscription"  # Ensure this matches the exact case and spelling in Bubble
     keys = ["user", "influencer"]
     values = [user_uid, influencer_uid]
     constraint_types = ["equals", "equals"]
     
-    # Use the get_data_list function to search for the subscription
     subscriptions = get_data_list(data_type, keys, values, constraint_types)
     
-    # Check if the response contains a subscription ID
-    if subscriptions != 404 and subscriptions:
-        # Assuming that there is only one subscription per user-influencer pair
-        # and the 'id' field is what you want
-        subscription_id = subscriptions[0]['id']
-        print(f"Found subscription ID: {subscription_id}")
-        return subscription_id
-    else:
-        print("No subscription found or there was an error in the request.")
+    # Check if there was an error or if no subscriptions were found
+    if subscriptions == 404:
+        print("Error fetching subscriptions data.")
         return None
+    elif not subscriptions:
+        print("Subscriptions list is empty. This should not happen.")
+        return None
+
+    # Assuming there's only one subscription per user-influencer pair
+    try:
+        subscription_id = subscriptions[0]['id']
+        print(f"Found subscription ID: {subscription_id} for user: {user_uid} and influencer: {influencer_uid}")
+        return subscription_id
+    except (IndexError, KeyError, TypeError) as e:
+        print(f"Error accessing subscription ID: {e}. Subscriptions data: {subscriptions}")
+        # Log the error and the subscriptions data for debugging
+        return None
+
 
 
 # Updates the database with a new value
