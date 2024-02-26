@@ -67,7 +67,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
         user_first_name = update.message.from_user.first_name
         
-        await send_image(update, context)
+
+        # Send user an intro image
+        image_url = "https://static.wixstatic.com/media/e1234e_36641e0f2be447bea722377cd31945d3~mv2.jpg/v1/crop/x_254,y_168,w_972,h_937/fill/w_506,h_488,al_c,q_80,usm_0.66_1.00_0.01,enc_auto/IMG_20231215_134002.jpg"
+        await send_image(update, context, image_url)
 
         message_text = f'''Hey {user_first_name}, welcome to VeronicaAI 💕!
 
@@ -219,14 +222,24 @@ async def handle_verification_response(update: Update, context: ContextTypes.DEF
 
     if text and expected_code:
         if str(text) == str(expected_code):
-            await update.message.reply_text('''Verification successful, you're ready to start using VeronicaAI!
-
-Enter /call_me if you want me to call the phone number you have with your account
-
-Enter /help if you run into any issues''', reply_markup=ReplyKeyboardRemove())
+            await update.message.reply_text('''Verification successful''', reply_markup=ReplyKeyboardRemove())
 
             # Set stage to response engine chatbot since user has entered email and phone number
             context.user_data['current_stage'] = "response_engine"
+
+            # Send user an welcome image
+            image_url = "https://static.wixstatic.com/media/e1234e_36641e0f2be447bea722377cd31945d3~mv2.jpg/v1/crop/x_254,y_168,w_972,h_937/fill/w_506,h_488,al_c,q_80,usm_0.66_1.00_0.01,enc_auto/IMG_20231215_134002.jpg"
+            await send_image(update, context, image_url)
+
+            await update.message.reply_text("""You're all set to start using VeronicaAI!
+
+I can send you voice notes, text you picutres, and even be able to call you.
+
+To start a call enter /call_me and I'll call the phone number you have with your account
+
+To start a subscription or to buy credits just enter /payments
+                                            
+Enter /help if you run into any issues""")
 
             database.update_verification_status(BOT_USERNAME, user_id, "True")
             
@@ -317,18 +330,30 @@ async def error(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     print(f"Update {update} caused error {context.error}")
 
 
-async def send_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+
+async def send_image(update: Update, context: ContextTypes.DEFAULT_TYPE, image_url) -> None:
     chat_id = update.message.chat_id  # Get the chat ID to know where to send the image
     
-    today_date = time.time()
-
     # Sending an image by a URL
-    image_url = imagesdb.get_image(today_date)
     await context.bot.send_photo(chat_id=chat_id, photo=image_url)
 
     # If you have a local image file you want to send, you can use file open
     # with open('path/to/your/image.jpg', 'rb') as file:
     #     await context.bot.send_photo(chat_id=chat_id, photo=file)
+
+
+async def send_daily_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:    
+    today_date = time.time()
+
+    # Sending an image by a URL
+    image_url = imagesdb.get_image(today_date)
+    send_image(update, context, image_url)
+
+    # If you have a local image file you want to send, you can use file open
+    # with open('path/to/your/image.jpg', 'rb') as file:
+    #     await context.bot.send_photo(chat_id=chat_id, photo=file)
+
+
 
 
 
