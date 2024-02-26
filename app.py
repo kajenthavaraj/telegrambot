@@ -96,7 +96,7 @@ def stripe_webhook():
                 if current_period_start is not None and current_period_end is not None:
                     last_billing_date = datetime.utcfromtimestamp(current_period_start).strftime('%Y-%m-%d')
                     next_billing_date = datetime.utcfromtimestamp(current_period_end).strftime('%Y-%m-%d')
-                    print(f"Last biling: {last_billing_date}, Next billing: {next_billing_date}")
+                    print(f"Last billing: {last_billing_date}, Next billing: {next_billing_date}")
 
                 else:   
                     current_date = datetime.utcnow().strftime('%Y-%m-%d')
