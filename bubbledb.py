@@ -93,22 +93,20 @@ def get_subscription_id(user_uid, influencer_uid):
     
     subscriptions = get_data_list(data_type, keys, values, constraint_types)
     
-    # Check if there was an error or if no subscriptions were found
     if subscriptions == 404:
         print("Error fetching subscriptions data.")
         return None
-    elif not subscriptions:
-        print("Subscriptions list is empty. This should not happen.")
+    elif not subscriptions or not subscriptions.get('results'):
+        print("Subscriptions list is empty or missing results.")
         return None
 
-    # Assuming there's only one subscription per user-influencer pair
     try:
-        subscription_id = subscriptions[0]['id']
+        # Access the first item in the 'results' list, then get its '_id' field
+        subscription_id = subscriptions['results'][0]['_id']
         print(f"Found subscription ID: {subscription_id} for user: {user_uid} and influencer: {influencer_uid}")
         return subscription_id
     except (IndexError, KeyError, TypeError) as e:
         print(f"Error accessing subscription ID: {e}. Subscriptions data: {subscriptions}")
-        # Log the error and the subscriptions data for debugging
         return None
 
 
