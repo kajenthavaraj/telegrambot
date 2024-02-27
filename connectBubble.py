@@ -231,16 +231,21 @@ def update_subscription(user_uid, telegram_user_id, influencer_uid, subscription
 
 
 def check_user_subscription(bubble_unique_id, influencer_uid):
-    # Assuming 'bubbledb.get_data' fetches data based on unique ID and data type.
-    data_type = "User"
-    user_data = bubbledb.get_data(bubble_unique_id, data_type)
+    # Assuming 'bubbledb.get_data' is a method to fetch data based on unique ID and data type.
+    user_data_type = "User"
+    subscription_data_type = "Subscription"
 
-    if user_data == 404:
+    # Fetch user data from Bubble database
+    user_data = bubbledb.get_data(bubble_unique_id, user_data_type)
+    print("The user data gotten is: ", user_data)
+
+    # Check if user data was successfully fetched
+    if user_data == 404 or not user_data:
         print("User not found or error fetching user data.")
         return False
 
-    # Access the 'Subscriptions' field which contains a list of subscription IDs
-    subscriptions = user_data.get('Subscriptions', [])
+    # Access the 'Subscriptions' field which is expected to contain a list of subscription IDs
+    subscriptions = user_data.get('subscriptions', [])
     print("User subscriptions:", subscriptions)
 
     if not subscriptions:
@@ -249,18 +254,26 @@ def check_user_subscription(bubble_unique_id, influencer_uid):
 
     # Iterate through each subscription ID to fetch subscription details
     for subscription_id in subscriptions:
-        # Fetching detailed data for each subscription
-        sub_data = bubbledb.get_data(subscription_id, "Subscription")
-        if sub_data == 404:
-            continue  # Skip if specific subscription data not found
+        # Fetching detailed data for each subscription from Bubble database
+        sub_data = bubbledb.get_data(subscription_id, subscription_data_type)
+
+        # Continue if specific subscription data not found or error occurred
+        if sub_data == 404 or not sub_data:
+            print(f"Subscription data not found for ID: {subscription_id}")
+            continue
 
         # Check if the subscription's 'influencer' field matches the given influencer UID
         if sub_data.get('influencer') == influencer_uid:
-            print("User has an active subscription with the influencer.")
-            return True  # User is subscribed to the influencer
+            subscription_status = sub_data.get('status')
+            if subscription_status == "complete":
+                print("User has an active subscription with the influencer.")
+                return True, subscription_status  # User is subscribed to the influencer and it's active
+            else:
+                return False, subscription_status
 
+    # If no matching subscription is found
     print("User does not have an active subscription with the influencer.")
-    return False
+    return False, None
 
 
 
