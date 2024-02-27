@@ -74,16 +74,17 @@ async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     if not bubble_unique_id:
             print("Bubble unique ID not found")
+            await update.message.reply_text("Error retrieving your subscription information. Please try again.")
 
 
-    existing_subscriptions = check_user_subscription(bubble_unique_id, influencer_UID) 
-    print (existing_subscriptions)
+    # The function now returns a boolean indicating active status and the subscription status
+    has_active_subscription, subscription_status = check_user_subscription(bubble_unique_id, influencer_UID) 
+    print(f"Active subscription status: {has_active_subscription}, Status: {subscription_status}")
 
-    if existing_subscriptions:
+    if has_active_subscription and subscription_status == "complete":
         print("User already has an active subscription.")
         message = "You already have an active subscription."
-        return await update.message.reply_text(message)
-
+        await update.message.reply_text(message)
     else:
         keyboard = [
             [InlineKeyboardButton("Monthly - $24.99", callback_data='subscribe_monthly')],
@@ -101,7 +102,7 @@ async def manage_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE
         await update.message.reply_text("Error retrieving your subscription information. Please try again.")
         return
 
-    existing_subscription = check_user_subscription(bubble_unique_id, influencer_UID)
+    existing_subscription = check_user_subscription(bubble_unique_id, influencer_id)
     
     if existing_subscription:
         # User has an active subscription
