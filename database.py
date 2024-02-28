@@ -246,6 +246,7 @@ def get_bubble_unique_id(influencer_id, user_id):
     if user_subscription_doc.exists:
         user_data = user_subscription_doc.to_dict()
         if 'bubble_user_unique_id' in user_data:
+            print("bubble_user_unique_id: ", user_data['bubble_user_unique_id'])
             return user_data['bubble_user_unique_id']  # Return the unique ID
         else:
             return False  # 'bubble_user_unique_id' field is not present

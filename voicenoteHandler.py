@@ -9,12 +9,15 @@ import asyncio
 import json
 import time
 import os
+from pydub import AudioSegment
 
 from openai import OpenAI
 
 import response_engine
 import database
 import elevenlabsTTS
+import connectBubble
+import bot
 
 import CONSTANTS
 
@@ -28,7 +31,7 @@ async def download_file(url: str, path: str):
         f.write(response.content)
 
 
-def transcribe_audio(audio_file_path):
+def transcribe_audio_file(audio_file_path):
     client = OpenAI(api_key="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")
 
     with open(audio_file_path, "rb") as audio_file:
@@ -42,6 +45,17 @@ def transcribe_audio(audio_file_path):
 
     return extracted_text
 
+
+# Get the length of an audio file in minutes
+def get_audio_duration(audio_file_path):
+    # Load the audio file
+    audio = AudioSegment.from_file(audio_file_path)
+    
+    # Calculate the duration in minutes
+    duration_seconds = len(audio) / 1000  # pydub calculates in millisec
+    duration_minutes = duration_seconds / 60
+    
+    return duration_minutes
 
 
 async def send_voice_note(update: Update, context: ContextTypes.DEFAULT_TYPE, ai_response: str) -> None:
@@ -60,12 +74,21 @@ async def send_voice_note(update: Update, context: ContextTypes.DEFAULT_TYPE, ai
     with open(audio_file_path, 'rb') as audio_file:
         await update.message.reply_voice(voice=InputFile(audio_file, filename=audio_file_path))
 
+    ##### Remove credits from user ####
+    # Find how long audio file it
+    duration_minutes = get_audio_duration(audio_file_path)
+    print("duration_minutes: ", duration_minutes)
+    
+    # Check if type of duration_minutes is valid, and then remove the credits from the user
+    if (isinstance(duration_minutes, float) or isinstance(duration_minutes, int)):
+        bubble_unique_id = bot.get_user_unique_id(update, context)
+        connectBubble.update_minutes_credits(bubble_unique_id, -duration_minutes)
+
     # Delete the generated audio file after sending it
     os.remove(audio_file_path)
 
 
-
-async def voice_note_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def transcribe_user_voice_note(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     user_id = str(update.message.from_user.id)
     
     voice_note = update.message.voice
@@ -76,17 +99,19 @@ async def voice_note_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await download_file(file.file_path, file_path)
 
     # Transcribe the voice note using Whisper API
-    transcription = transcribe_audio(file_path)
+    transcription = transcribe_audio_file(file_path)
 
     # Delete the file after transcription
     os.remove(file_path)
-    
-    
-    ######### Send the voice note #########
-    # will need to add logic for whether to send a text message or not
+
+    return transcription
+
+
+async def voice_note_creator(update: Update, context: ContextTypes.DEFAULT_TYPE, text:str) -> None:
+    user_id = str(update.message.from_user.id)
 
     # Add the current message to the user's chat history
-    database.add_chat_to_user_history(BOT_USERNAME, user_id, "user", "Fan: " + transcription)
+    database.add_chat_to_user_history(BOT_USERNAME, user_id, "user", "Fan: " + text)
 
     # Retrieve the updated chat history
     chat_history = database.get_user_chat_history(BOT_USERNAME, user_id)
@@ -95,9 +120,8 @@ async def voice_note_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
     # Generate response using Response Engine
-    ai_response = response_engine.voicenotes_create_response(parsed_chat_history, transcription, update)
+    ai_response = response_engine.voicenotes_create_response(parsed_chat_history, text, update)
     # print("ai_response: ", ai_response)
-
 
     await send_voice_note(update, context, ai_response)
 
@@ -105,7 +129,7 @@ async def voice_note_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 def main():
     application = Application.builder().token(TOKEN).build() 
-    application.add_handler(MessageHandler(filters.VOICE, voice_note_handler))
+    application.add_handler(MessageHandler(filters.VOICE, voice_note_creator))
 
     print("Polling...")
     application.run_polling()

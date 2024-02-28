@@ -19,8 +19,9 @@ import bubbledb
 import connectBubble
 import loginuser
 import paymentstest
-import voicenoteHandler as voicenoteHandler
+import voicenoteHandler
 import imagesdb
+import math
 
 
 TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
@@ -38,12 +39,13 @@ bot = Bot(TOKEN)
 '''
 callme - Have VeronicaAI call your phone number
 purchase - Add credits to your account or subscribe
-balance - Display your credits balance
+accountinfo - Display your credits balance and information about your account
 disable_voicenotes - Disable voice notes (texting only)
 enable_voicenotes - Enable voice notes
 feedback - Provide feedback to improve the bot
-accountinfo - Display the information about your account
 help - Display help message
+
+
 '''
 
 def get_global_commands():
@@ -336,6 +338,7 @@ def get_user_unique_id(update, context):
         unique_id = database.get_bubble_unique_id(BOT_USERNAME, user_id)
         
         context.user_data['user_unique_id'] = unique_id
+        return unique_id
 
 
 async def handle_verification_response(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -461,9 +464,9 @@ If you're facing any other issues, contact admin@tryinfluencer.ai''')
 async def update_voice_notes_commands(user_id, voice_notes_status):
     global_commands = get_global_commands()
     if voice_notes_status == 'enabled':
-        scoped_commands = global_commands + [BotCommand("disable_voicenotes", "Disable voice notes")]
+        scoped_commands = [BotCommand("disable_voicenotes", "Disable voice notes")] + global_commands
     else:
-        scoped_commands = global_commands + [BotCommand("enable_voicenotes", "Enable voice notes")]
+        scoped_commands = [BotCommand("enable_voicenotes", "Enable voice notes")] + global_commands
 
     scope = BotCommandScopeChat(chat_id=user_id)
     await bot.setMyCommands(commands=scoped_commands, scope=scope)
@@ -491,7 +494,7 @@ async def callme_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     has_phone, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
     user_first_name = update.message.from_user.first_name
 
-    user_unique_id = database.get_bubble_unique_id(BOT_USERNAME, user_id)
+    user_unique_id = get_user_unique_id(update, context) #database.get_bubble_unique_id(BOT_USERNAME, user_id)
 
     if(has_phone == True):
         place_call(phone_number, user_first_name, )
@@ -531,8 +534,17 @@ async def send_daily_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 def changenumber(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return
 
+async def changenumber_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    pass
+
+
+
 def changename(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return
+
+async def changename_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    pass
+
 
 
 # Maybe have "account info - give status on what's in the account" command that sends all the account info (number of credits, etc.)
@@ -578,38 +590,72 @@ def place_call(phone_number, prospect_name, prospect_email, unique_id, credits_l
 ####################### Chatbot Handler ########################
 ################################################################
 
-async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def handle_user_voice_note(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    transcription = voicenoteHandler.transcribe_user_voice_note(update, context)
+
+    handle_response(update, context, transcription)
+
+
+async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE, voicenote_transcription=None) -> None:
     user_id = str(update.message.from_user.id)
     influencer_id = BOT_USERNAME
     
-    text = update.message.text
-
-    # Add the current message to the user's chat history
-    database.add_chat_to_user_history(influencer_id, user_id, "user", "Fan: " + text)
-
-    # Retrieve the updated chat history
-    chat_history = database.get_user_chat_history(influencer_id, user_id)
-
-    # Format the chat history for display
-    parsed_chat_history = response_engine.parse_chat_history(chat_history)
-
-    # Generate a response based on the user's message history (modify this function as needed)
-    ai_response = response_engine.chatbot_create_response(parsed_chat_history, text, update)
-    database.add_chat_to_user_history(influencer_id, user_id, 'assistant', 'Influencer: ' + ai_response)
-
-    # Send the chat history along with the AI response
-    # chat_history_str = '\n'.join(f"{chat['content']}" for chat in chat_history)
-    # print(f"Current Chat History: \n {chat_history_str}")
-
-    reply_array = response_engine.split_messages(ai_response)
-    reply_array = response_engine.remove_questions(reply_array)
-
-    for message_reply in reply_array:
-        print("message_reply: ", message_reply)
-        await update.message.reply_text(message_reply)
-        # asyncio.sleep(1)
+    # Case when user doesn't send voice - take text from Telegram's user data
+    if(voicenote_transcription == None):
+        text = update.message.text
+    else:
+        text = voicenote_transcription
 
 
+    # Initialize stage as enabled if voice_notes_status is not inside user data
+    if('voice_notes_status' not in context.user_data):
+        context.user_data['voice_notes_status'] = "enabled"
+
+    
+    # Double check if user has enough credits if voice_notes_status is set to "enabled"
+    if(context.user_data['voice_notes_status'] == "enabled"):
+        # Check if user has enough credits
+        unique_id = get_user_unique_id(update, context)#database.get_bubble_unique_id(BOT_USERNAME, user_id)
+
+        current_minutes_credits = connectBubble.get_minutes_credits(unique_id)
+        print("current_minutes_credits: ", current_minutes_credits)
+
+        if(math.floor(current_minutes_credits) <= 0):
+            context.user_data['voice_notes_status'] = "disabled"
+
+
+    
+    # Check whether to use voice notes or chatbot
+    if(context.user_data['voice_notes_status'] == "disabled"):
+
+        # Add the current message to the user's chat history
+        database.add_chat_to_user_history(influencer_id, user_id, "user", "Fan: " + text)
+
+        # Retrieve the updated chat history
+        chat_history = database.get_user_chat_history(influencer_id, user_id)
+
+        # Format the chat history for display
+        parsed_chat_history = response_engine.parse_chat_history(chat_history)
+
+        # Generate a response based on the user's message history (modify this function as needed)
+        ai_response = response_engine.chatbot_create_response(parsed_chat_history, text, update)
+        database.add_chat_to_user_history(influencer_id, user_id, 'assistant', 'Influencer: ' + ai_response)
+        
+        # Send the chat history along with the AI response
+        # chat_history_str = '\n'.join(f"{chat['content']}" for chat in chat_history)
+        # print(f"Current Chat History: \n {chat_history_str}")
+
+        reply_array = response_engine.split_messages(ai_response)
+        reply_array = response_engine.remove_questions(reply_array)
+
+        for message_reply in reply_array:
+            print("message_reply: ", message_reply)
+            await update.message.reply_text(message_reply)
+            # asyncio.sleep(1)
+        
+    else:
+        # Call voice notes handler
+        await voicenoteHandler.voice_note_creator(update, context, text)
 
 
 '''
@@ -645,7 +691,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             await handle_response(update, context)
         else:
             phone_status, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
-            
+
             # If number has been stored but then we need to verify it since verification_stauts is False
             if(phone_status == True):
                 user_data["current_stage"] = "awaiting_verification"
@@ -706,11 +752,11 @@ def main():
     
     # dp.add_handler(MessageHandler(filters.TEXT, handle_email))
     dp.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-
+    
 
     # dp.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_verification_response))
     
-    dp.add_handler(MessageHandler(filters.VOICE, voicenoteHandler.voice_note_handler))
+    dp.add_handler(MessageHandler(filters.VOICE, handle_user_voice_note))
 
     dp.add_handler(CommandHandler("help", help_command))
     dp.add_handler(CommandHandler("callme", callme_command))
@@ -718,6 +764,10 @@ def main():
     dp.add_handler(CommandHandler("disable_voicenotes", disable_voice_notes_command))
     dp.add_handler(CommandHandler("enable_voicenotes", enable_voice_notes_command))
 
+    dp.add_handler(CommandHandler("changenumber", changenumber_command))
+    dp.add_handler(CommandHandler("changename", changename_command))
+
+    
     dp.add_handler(CommandHandler("purchase", paymentstest.purchase))
     dp.add_handler(CallbackQueryHandler(paymentstest.button))
 
