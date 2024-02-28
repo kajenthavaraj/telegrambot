@@ -1,5 +1,5 @@
 from typing import Final
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, Bot, BotCommand, BotCommandScopeChat
 
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackContext, CallbackQueryHandler
 import time
@@ -11,7 +11,7 @@ import asyncio
 # import stripe
 from openai import OpenAI
 
-import chatbot_response_engine
+import response_engine
 import vectordb
 
 import database
@@ -19,25 +19,47 @@ import bubbledb
 import connectBubble
 import loginuser
 import paymentstest
-import voicenoteHandler
+import voicenoteHandler as voicenoteHandler
 import imagesdb
 
 
 TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
 BOT_USERNAME: Final = "@veronicaavluvaibot"
 
+AI_NAME = "VeronicaAI"
+
 AGENT_ID = "veronica_avluv"
 
+bot = Bot(TOKEN)
 
 # stripe.api_key = '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'
 
 ##### Commands - need to add to bot father #####
 '''
-start - starts the bot
-help - provides help for Veronica AI
-callme - Have Veronica AI call you
-payments - Purchase minutes to use VeronicaAI
+callme - Have VeronicaAI call your phone number
+purchase - Add credits to your account or subscribe
+balance - Display your credits balance
+disable_voicenotes - Disable voice notes (texting only)
+enable_voicenotes - Enable voice notes
+feedback - Provide feedback to improve the bot
+accountinfo - Display the information about your account
+help - Display help message
 '''
+
+def get_global_commands():
+    return[
+        # BotCommand("start", "start the bot"),
+        BotCommand("callme", f"Have {AI_NAME} call your phone number"),
+        BotCommand("purchase", "Add credits to your account or subscribe"),
+        BotCommand("balance", "Display your credits balance"),
+        BotCommand("feedback", "Provide feedback to improve the bot"),
+        BotCommand("changename", f"Change the name that {AI_NAME} calls you"),
+        BotCommand("changenumber", "Change the phone number for your account"),
+        BotCommand("accountinfo", "Display the information about your account"),
+
+        BotCommand("help", "Display help message")
+    ]
+
 
 
 # Telegram bot stages stored inside context.user_data['current_stage']
@@ -46,12 +68,17 @@ awaiting_email
 awaiting_contact
 awaiting_verification
 response_engine
+
+changenumber
+changename
 '''
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = str(update.message.from_user.id)
     influencer_id = BOT_USERNAME
+
+    context.user_data['voice_notes_status'] = "enabled"
 
     ############### Check if user already exists ###############
     user_exists_status = database.check_user_exists(BOT_USERNAME, user_id)
@@ -123,7 +150,7 @@ Now, please share your phone number to continue. Press the button below.'''
     else:
         # Keep the stage at awaiting_email
         context.user_data['current_stage'] = "awaiting_email"
-
+        
         # Handle invalid email format
         await update.message.reply_text("It seems like the email you entered is invalid.")
         await update.message.reply_text("Please enter your email again below:")
@@ -153,28 +180,89 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
         # Set stage at awaiting_verification since we're waiting for the verification code
         context.user_data['current_stage'] = "awaiting_verification"
 
+        await verify_number(update, context, phone_number)
 
-        # Send user the verification code
 
-        # Assuming loginuser.generate_random_number() and loginuser.send_verification_code() are defined elsewhere
-        verification_code = loginuser.generate_random_number()
-        loginuser.send_verification_code(phone_number, verification_code)
 
-        # Store the verification code in the context user data for later verification
-        context.user_data['expected_code'] = verification_code
-        
-        database.update_verification_status(BOT_USERNAME, user_id, "False")
-        
-        print("Sent verification code: ", verification_code)
+async def verify_number(update: Update, context: ContextTypes.DEFAULT_TYPE, phone_number: str) -> None:
+       
+    user_id = str(update.message.from_user.id)
 
-        # Prompt user for the verification code
-        await update.message.reply_text(f'Please enter the verification code sent to {phone_number}', reply_markup=ReplyKeyboardRemove())
-        
-        # await handle_verification_response(update, context)
+    print("Finding verfication status")
+    verification_status = database.get_verification_status(BOT_USERNAME, user_id)
+    print("verification_status:", verification_status)
+
+    if(verification_status == True):
+        return
+    
+    # Send user the verification code
+
+    # Assuming loginuser.generate_random_number() and loginuser.send_verification_code() are defined elsewhere
+    verification_code = loginuser.generate_random_number()
+    loginuser.send_verification_code(phone_number, verification_code)
+
+    # Store the verification code in the context user data for later verification
+    context.user_data['expected_code'] = verification_code
+    
+    database.update_verification_status(BOT_USERNAME, user_id, "False")
+    
+    print("Sent verification code: ", verification_code)
+
+    # Prompt user for the verification code
+    await update.message.reply_text(f'Please enter the verification code sent to {phone_number}', reply_markup=ReplyKeyboardRemove())
+    
+    # await handle_verification_response(update, context)
+
+
+#### Helper functions ####
+def gpt_verify_and_format_number(phone_number:str): # -> List[bool, str]:
+    phone_verify_prompt = '''You're job is to verify and format if a phone number is correct.
+A phone number should follow the conventional code such where it's the country code followed by the area code and rest of the number.
+For example this is an example of a correct number: 16477667841
+And this is an example of a wrong number: 164776678
+
+If number is valid but is in the wrong format, reformat it and return it back. If a number is not valid, then return back INVALID. Do not include "OUTPUT" in your actual message.
+These are some examples:
+Input:16477667
+Output: INVALID
+
+Input: 6477667841
+Output: MISSING COUNTRY CODE
+
+Input:+1-416-933-2213
+Output: 14169332213'''
+
+    phone_input_prompt = f'''Phone number: {phone_number}
+OUTPUT: '''
+
+    messages = [{"role" : "system", "content" : phone_verify_prompt}]
+    messages.append({"role": "user", "content": phone_input_prompt})
+
+    ai_response = ""    
+    for res in response_engine.call_openai_stream_gpt4_turbo(messages):
+        ai_response += res
+    
+    print(ai_response)
+
+    if("invalid" in ai_response.lower()):
+        return False, None
+    elif("missing" in ai_response.lower()):
+        return False, "missing area code"
+    else:
+        return True, ai_response
+
+
+
+# Current Issue/Bug to fix
+    # Enter number via text (not sharing contact)
+    # Enter code
+    # Try reentering number via text (not sharing contact)
+        # Can only share by contact now
 
 
 async def handle_phone_number_via_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = str(update.message.from_user.id)
+    user_data = context.user_data
     text = update.message.text.strip()
 
     # Custom keyboard to request contact, with an emoji to make the button more noticeable
@@ -184,6 +272,59 @@ async def handle_phone_number_via_text(update: Update, context: ContextTypes.DEF
     retry_message = '''Please try again using the '📞 Share Phone Number' button below.'''
     
     await update.message.reply_text(retry_message, reply_markup=reply_markup)
+
+    stored_phone_number_status, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
+    print(stored_phone_number_status)
+    
+    if (stored_phone_number_status == False):
+        # Use the verification and formatting function
+        is_valid, formatted_number_or_message = gpt_verify_and_format_number(text)
+
+        if is_valid:
+            # Store the formatted phone number in Firestore
+            database.store_user_phone_number(BOT_USERNAME, user_id, formatted_number_or_message)
+
+            # Inform the user
+            database.add_chat_to_user_history(BOT_USERNAME, user_id, 'assistant', 'Influencer: ' + "Thank you for sharing your phone number.")
+
+            await update.message.reply_text("Thank you for sharing your phone number.")
+
+            user_data["current_stage"] == "awaiting_verification"
+            await verify_number(update, context, formatted_number_or_message)
+
+        else:
+            # Custom keyboard to request contact, with an emoji to make the button more noticeable
+            keyboard = [[KeyboardButton("📞 Share Phone Number", request_contact=True)]]
+            reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+
+            # Ask the user to try again or use the button
+            retry_message = "The entered number seems invalid."
+            if formatted_number_or_message == "missing area code":
+                retry_message += " It seems like the country code is missing."
+            
+            retry_message += '''
+
+Please try again using the '📞 Share Phone Number' button below.'''
+            
+            await update.message.reply_text(retry_message, reply_markup=reply_markup)
+    else:
+        if(database.get_verification_status(BOT_USERNAME, user_id) == "True"):
+            await handle_response(update, context)
+        else:
+            user_data["current_stage"] == "awaiting_contact"
+
+            keyboard = [[KeyboardButton("📞 Share Phone Number", request_contact=True)]]
+            reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+
+            retry_message = '''Please share your number again using the '📞 Share Phone Number' button below.'''
+            
+            await update.message.reply_text(retry_message, reply_markup=reply_markup)
+
+            # user_data["current_stage"] == "awaiting_verification"
+            # await verify_number(update, context, phone_number)
+
+
+
 
 
 def get_user_unique_id(update, context):
@@ -307,11 +448,44 @@ Enter /help if you run into any issues""")
         await handle_response(update, context)
 
 
+# Commands
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("Hey how can I help you?")
+    await update.message.reply_text('''You can edit any of your account info using the follwowing commands:
+Change the name that VeronicaAI calls you -  /changename
+Change your account's phone number -  /changephone
+                                    
+If you're facing any other issues, contact admin@tryinfluencer.ai''')
 
 
-async def callme(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def update_voice_notes_commands(user_id, voice_notes_status):
+    global_commands = get_global_commands()
+    if voice_notes_status == 'enabled':
+        scoped_commands = global_commands + [BotCommand("disable_voicenotes", "Disable voice notes")]
+    else:
+        scoped_commands = global_commands + [BotCommand("enable_voicenotes", "Enable voice notes")]
+
+    scope = BotCommandScopeChat(chat_id=user_id)
+    await bot.setMyCommands(commands=scoped_commands, scope=scope)
+
+
+async def enable_voice_notes_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = str(update.message.from_user.id)
+
+    context.user_data['voice_notes_status'] = "enabled"
+    await update_voice_notes_commands(user_id, 'enabled')
+    await update.message.reply_text("Voice notes enabled")
+
+
+async def disable_voice_notes_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = str(update.message.from_user.id)
+
+    context.user_data['voice_notes_status'] = "disabled"
+    await update_voice_notes_commands(user_id, 'disabled')
+    await update.message.reply_text("Voice notes disabled")
+
+
+async def callme_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = str(update.message.from_user.id)
 
     has_phone, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
@@ -354,7 +528,11 @@ async def send_daily_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     #     await context.bot.send_photo(chat_id=chat_id, photo=file)
 
 
+def changenumber(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    return
 
+def changename(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    return
 
 
 # Maybe have "account info - give status on what's in the account" command that sends all the account info (number of credits, etc.)
@@ -413,18 +591,18 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     chat_history = database.get_user_chat_history(influencer_id, user_id)
 
     # Format the chat history for display
-    parsed_chat_history = chatbot_response_engine.parse_chat_history(chat_history)
+    parsed_chat_history = response_engine.parse_chat_history(chat_history)
 
     # Generate a response based on the user's message history (modify this function as needed)
-    ai_response = chatbot_response_engine.create_response(parsed_chat_history, text, update)
+    ai_response = response_engine.chatbot_create_response(parsed_chat_history, text, update)
     database.add_chat_to_user_history(influencer_id, user_id, 'assistant', 'Influencer: ' + ai_response)
 
     # Send the chat history along with the AI response
     # chat_history_str = '\n'.join(f"{chat['content']}" for chat in chat_history)
     # print(f"Current Chat History: \n {chat_history_str}")
 
-    reply_array = chatbot_response_engine.split_messages(ai_response)
-    reply_array = chatbot_response_engine.remove_questions(reply_array)
+    reply_array = response_engine.split_messages(ai_response)
+    reply_array = response_engine.remove_questions(reply_array)
 
     for message_reply in reply_array:
         print("message_reply: ", message_reply)
@@ -506,6 +684,13 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 await handle_contact(update, context)
         elif(user_data["current_stage"] == "awaiting_verification"):
             await handle_verification_response(update, context)
+        
+        elif(user_data["current_stage"] == "changenumber"):
+            # Call change number function
+            pass
+        elif(user_data["current_stage"] == "changename"):
+            # Call change number function
+            pass
         else:
             print("Going into response engine - no stage identified")
             user_data["current_stage"] = "response_engine"
@@ -522,19 +707,23 @@ def main():
     # dp.add_handler(MessageHandler(filters.TEXT, handle_email))
     dp.add_handler(MessageHandler(filters.CONTACT, handle_contact))
 
-    # Handle non-command messages
-    # This is your main text message handler
-    dp.add_handler(MessageHandler(filters.TEXT, message_handler))
 
     # dp.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_verification_response))
     
     dp.add_handler(MessageHandler(filters.VOICE, voicenoteHandler.voice_note_handler))
 
     dp.add_handler(CommandHandler("help", help_command))
-    dp.add_handler(CommandHandler("callme", callme))
-    dp.add_handler(CommandHandler("payments", paymentstest.purchase))
+    dp.add_handler(CommandHandler("callme", callme_command))
+
+    dp.add_handler(CommandHandler("disable_voicenotes", disable_voice_notes_command))
+    dp.add_handler(CommandHandler("enable_voicenotes", enable_voice_notes_command))
+
+    dp.add_handler(CommandHandler("purchase", paymentstest.purchase))
     dp.add_handler(CallbackQueryHandler(paymentstest.button))
 
+    # Handle non-command messages
+    # This is your main text message handler
+    dp.add_handler(MessageHandler(filters.TEXT, message_handler))
 
     # Errors
     dp.add_error_handler(error)
