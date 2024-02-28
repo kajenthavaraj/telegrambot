@@ -572,7 +572,8 @@ Influencer: '''
     
 
     # Get reduced chat history and write it into the messages array
-    append_messages_chat_history(messages, chat_history, 300)
+    # append_messages_chat_history(messages, chat_history, 300)
+    
     
     messages.append({"role": "user", "content": chat_input_prompt})
 
@@ -591,6 +592,8 @@ Influencer: '''
         print(" 'Influencer:' key word found in response, removing it")
         ai_response = ai_response.replace("Influencer: ", "")
     
+
+    ai_response = remove_emojis_except_specific(ai_response)
     print("ai_response: ", ai_response)
 
     return ai_response
