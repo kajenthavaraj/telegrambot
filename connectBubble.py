@@ -167,7 +167,7 @@ def create_user(email, unparsed_phone_number, first_name):
 def add_subscription(user_uid, telegram_user_id, influencer_uid):
 
     # Create subscription
-
+    
     data = {
         "credits_used": 0,
         "influencer": influencer_uid,
@@ -177,7 +177,7 @@ def add_subscription(user_uid, telegram_user_id, influencer_uid):
     }
     
     sub_id = bubbledb.add_entry("subscription", data)
-    print(sub_id)
+    print("subscription_id: ", sub_id)
     
 
     if(sub_id != 400 or sub_id != 401):

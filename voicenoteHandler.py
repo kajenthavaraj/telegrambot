@@ -12,7 +12,7 @@ import os
 
 from openai import OpenAI
 
-import voicenote_response_engine as vn_response_engine
+import response_engine
 import database
 import elevenlabsTTS
 
@@ -49,7 +49,7 @@ async def send_voice_note(update: Update, context: ContextTypes.DEFAULT_TYPE, ai
     # await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.RECORD_AUDIO)
 
     # Generate audio from the transcribed text
-    audio_bytes = elevenlabsTTS.get_completed_audio(ai_response, CONSTANTS.AGENT_ID)  # Use your actual agent ID
+    audio_bytes = elevenlabsTTS.get_completed_audio(ai_response)
 
     # Save the generated audio to a file
     audio_file_path = f"tts_output_{update.message.message_id}.mp3"
@@ -80,7 +80,7 @@ async def voice_note_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     # Delete the file after transcription
     os.remove(file_path)
-
+    
     
     ######### Send the voice note #########
     # will need to add logic for whether to send a text message or not
@@ -91,11 +91,11 @@ async def voice_note_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     # Retrieve the updated chat history
     chat_history = database.get_user_chat_history(BOT_USERNAME, user_id)
     # Format the chat history for display
-    parsed_chat_history = vn_response_engine.parse_chat_history(chat_history)
+    parsed_chat_history = response_engine.parse_chat_history(chat_history)
 
 
     # Generate response using Response Engine
-    ai_response = vn_response_engine.create_response(parsed_chat_history, transcription, update)
+    ai_response = response_engine.voicenotes_create_response(parsed_chat_history, transcription, update)
     # print("ai_response: ", ai_response)
 
 

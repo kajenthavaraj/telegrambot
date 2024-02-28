@@ -1,38 +1,102 @@
-import re
-user_email = "kajengmai.con"
-if (re.match(r"[^@]+@[^@]+\.(?!con$)[^@]+", user_email)):
-    print("True")
-else:
-    print("False")
-# def split_messages(ai_response):
-#     # Regular expression to match sentences ending with specific punctuation and followed by a space or end of string
-#     reply_array = re.split(r'(?<=[.!?])\s+(?=[A-Za-z])', ai_response)
+from elevenlabs import clone, generate, play, set_api_key, stream, Voice, VoiceSettings
+import shutil
+import subprocess
+from typing import Iterator
 
-#     new_reply_array = []
-#     temp = ""
+from queue import Queue
+import time
+import io
+import base64
+import pathlib
+import base64
+import requests
+import json
+from pydub import AudioSegment
+import random
+import os
 
-#     for i, reply in enumerate(reply_array):
 
-#         if i == 0:
-#             # Store the first sentence temporarily
-#             temp = reply
-#         elif i == 1:
-#             # Combine the first and second sentence and add to new_reply_array
-#             new_reply_array.append(temp + " " + reply)
-#         else:
-#             # Remove period from string
-#             if("." in reply):
-#                 reply = reply.replace(".", "")
-            
-#             # Add remaining sentences to new_reply_array
-#             new_reply_array.append(reply)
 
-#     # Check if temp has a value and new_reply_array is empty, then add temp to new_reply_array
-#     if temp and not new_reply_array:
-#         if("." in temp):
-#             temp = temp.replace(".", "")
-#         new_reply_array.append(temp)
+AGENT_ID = "veronica_avluv"
 
-#     return new_reply_array
 
-# print(split_messages("Wagwan G. What's up with you? Is everything ok?"))
+# sudo apt update
+# sudo apt install ffmpeg
+
+
+with open("voice_model_map.json", "r") as file:
+    voice_model_map = json.load(file)
+
+with open("voice_settings_map.json", "r") as file:
+    voice_settings_map = json.load(file)
+
+
+def get_audio_data(
+    text: str, agent_id, chunk_size=3004, model="eleven_multilingual_v2"
+):
+    text = text.strip(",")
+    voice = voice_model_map[agent_id]
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice}/stream"
+
+    # print("similarity " + str(voice_settings_map.get(self.voicestatus.agent_id, {}).get("similarity_boost", 50)))
+    # print("stability: " + str(voice_settings_map.get(self.voicestatus.agent_id, {}).get("stability", 50)))
+    querystring = {"output_format": "mp3_44100_128"}
+    payload = {
+        "model_id": model,
+        "text": text,
+        "voice_settings": {
+            "similarity_boost": voice_settings_map.get(agent_id, {}).get(
+                "similarity_boost", 0.4
+            ),
+            "stability": voice_settings_map.get(agent_id, {}).get("stability", 0.7),
+        },
+    }
+    headers = {
+        "xi-api-key": "827435e41a0abb6bdad7ea666024dd86",
+        "Content-Type": "application/json",
+    }
+
+    audio = requests.request(
+        "POST", url, json=payload, headers=headers, params=querystring
+    )
+    # audio = generate(text=text, voice=voice, stream=True, latency=4, stream_chunk_size=chunk_size, model=model, )
+    # print(audio.text)
+
+    for chunk in audio.iter_content(chunk_size=chunk_size):
+        if chunk:
+            # print(len(chunk))
+            yield chunk
+
+
+def get_completed_audio(text, model="eleven_multilingual_v2"):
+    gen = get_audio_data(text=text, agent_id=AGENT_ID, chunk_size=3004, model=model)
+    complete_audio_bytes = b""
+    complete_audio = b""
+
+    for chunk in gen:
+        complete_audio_bytes += chunk
+
+    return complete_audio_bytes
+
+
+def send_voice_note(ai_response: str) -> None:
+    # This will send the 'recording audio' action to the chat
+    # await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.RECORD_AUDIO)
+
+    # Generate audio from the transcribed text
+    audio_bytes = get_completed_audio(ai_response)  # Use your actual agent ID
+
+    # Save the generated audio to a file
+    audio_file_path = f"tts_output.mp3"
+    with open(audio_file_path, 'wb') as audio_file:
+        audio_file.write(audio_bytes)
+
+    # # Send the audio file as a voice note
+    # with open(audio_file_path, 'rb') as audio_file:
+    #     await update.message.reply_voice(voice=InputFile(audio_file, filename=audio_file_path))
+
+    # Delete the generated audio file after sending it
+    # os.remove(audio_file_path)
+
+
+send_voice_note("Hey there how are you doing today?")
