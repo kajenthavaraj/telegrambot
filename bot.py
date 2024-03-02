@@ -8,7 +8,6 @@ import json
 import re
 import asyncio
 
-# import stripe
 from openai import OpenAI
 
 import response_engine
@@ -33,14 +32,12 @@ AGENT_ID = "veronica_avluv"
 
 bot = Bot(TOKEN)
 
-# stripe.api_key = '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'
 
 ##### Commands - need to add to bot father #####
 '''
 callme - Have VeronicaAI call your phone number
 deposit - Add credits to your account or subscribe
 balance - Display your credits balance
-accountinfo - Display the email and phone number connected to your account
 feedback - Provide feedback to improve the bot
 help - Display help message
 '''
@@ -52,9 +49,9 @@ def get_global_commands():
         BotCommand("deposit", "Add credits to your account or subscribe"),
         BotCommand("balance", "Display your credits balance"),
         BotCommand("feedback", "Provide feedback to improve the bot"),
-        BotCommand("changename", f"Change the name that {AI_NAME} calls you"),
-        BotCommand("changenumber", "Change the phone number for your account"),
-        BotCommand("accountinfo", "Display the information about your account"),
+        # BotCommand("changename", f"Change the name that {AI_NAME} calls you"),
+        # BotCommand("changenumber", "Change the phone number for your account"),
+        # BotCommand("accountinfo", "Display the information about your account"),
 
         BotCommand("help", "Display help message")
     ]
@@ -477,29 +474,29 @@ To add credits to your account or subscribe, use /deposit'''
 
 
 
-async def accountinfo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_id = str(update.message.from_user.id)
-    unique_id = get_user_unique_id(update, context)
+# async def accountinfo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+#     user_id = str(update.message.from_user.id)
+#     unique_id = get_user_unique_id(update, context)
 
-    first_name = connectBubble.get_user_first_name(unique_id)
+#     first_name = connectBubble.get_user_first_name(unique_id)
 
-    # Get user's email info
-    email = connectBubble.get_user_email(unique_id)
+#     # Get user's email info
+#     email = connectBubble.get_user_email(unique_id)
 
-    # Get user's phone number
-    status, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
+#     # Get user's phone number
+#     status, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
 
-    if(status == False):
-        acountinfo_message = f'''You don't have a phone number connected to your account yet. Please finsh signing up in order to see your account info.'''
-    else:
-        acountinfo_message = f'''First Name: {first_name}
-Email: {email}
-Phone Number: {phone_number}
+#     if(status == False):
+#         acountinfo_message = f'''You don't have a phone number connected to your account yet. Please finsh signing up in order to see your account info.'''
+#     else:
+#         acountinfo_message = f'''First Name: {first_name}
+# Email: {email}
+# Phone Number: {phone_number}
 
-To change your account's email, use /changenumber
-To change your account's first name, use /changename'''
+# To change your account's email, use /changenumber
+# To change your account's first name, use /changename'''
 
-    await context.bot.send_message(chat_id=user_id, text=acountinfo_message, parse_mode='Markdown')
+#     await context.bot.send_message(chat_id=user_id, text=acountinfo_message, parse_mode='Markdown')
 
 
 
@@ -808,23 +805,19 @@ def main():
     
     # dp.add_handler(MessageHandler(filters.TEXT, handle_email))
     dp.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-    
-
-    # dp.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_verification_response))
-    
+        
     dp.add_handler(MessageHandler(filters.VOICE, handle_user_voice_note))
 
     dp.add_handler(CommandHandler("help", help_command))
     dp.add_handler(CommandHandler("callme", callme_command))
-    dp.add_handler(CommandHandler("accountinfo", accountinfo_command))
     dp.add_handler(CommandHandler("balance", balance_command))
+
+    # dp.add_handler(CommandHandler("accountinfo", accountinfo_command))
+    # dp.add_handler(CommandHandler("changenumber", changenumber_command))
+    # dp.add_handler(CommandHandler("changename", changename_command))
 
     # dp.add_handler(CommandHandler("disable_voicenotes", disable_voice_notes_command))
     # dp.add_handler(CommandHandler("enable_voicenotes", enable_voice_notes_command))
-
-    dp.add_handler(CommandHandler("changenumber", changenumber_command))
-    dp.add_handler(CommandHandler("changename", changename_command))
-
     
     dp.add_handler(CommandHandler("deposit", paymentstest.purchase))
     dp.add_handler(CallbackQueryHandler(paymentstest.button))
