@@ -39,11 +39,10 @@ bot = Bot(TOKEN)
 '''
 callme - Have VeronicaAI call your phone number
 deposit - Add credits to your account or subscribe
-accountinfo - Display your credits balance and information about your account
+balance - Display your credits balance
+accountinfo - Display the email and phone number connected to your account
 feedback - Provide feedback to improve the bot
 help - Display help message
-
-
 '''
 
 def get_global_commands():
@@ -379,8 +378,10 @@ I can send you voice notes, text you picutres, and even be able to call you.
 
 To start a call enter /callme and I'll call the phone number you have with your account
 
-To start a subscription or to buy credits just enter /deposit
-                                            
+You have 5 free credits.
+
+To buy more credits or subscribe just enter /deposit
+
 Enter /help if you run into any issues""")
 
             database.update_verification_status(BOT_USERNAME, user_id, "True")
@@ -451,6 +452,58 @@ Enter /help if you run into any issues""")
 
 # Commands
 
+
+async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = str(update.message.from_user.id)
+
+    # Get the user's credits info
+    unique_id = get_user_unique_id(update, context)
+    print(unique_id)
+    num_credits = connectBubble.get_minutes_credits(unique_id)
+
+    num_credits = str(round(num_credits, 2))
+
+
+    # Get user's phone number
+    status, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
+
+    if(status == False):
+        acountinfo_message = f'''You don't have a phone number connected to your account yet. Please finsh signing up in order to access your account info.'''
+    else:
+        acountinfo_message = f'''You have *{num_credits} InfluencerAI credits* available
+To add credits to your account or subscribe, use /deposit'''
+
+    await context.bot.send_message(chat_id=user_id, text=acountinfo_message, parse_mode='Markdown')
+
+
+
+async def accountinfo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = str(update.message.from_user.id)
+    unique_id = get_user_unique_id(update, context)
+
+    first_name = connectBubble.get_user_first_name(unique_id)
+
+    # Get user's email info
+    email = connectBubble.get_user_email(unique_id)
+
+    # Get user's phone number
+    status, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
+
+    if(status == False):
+        acountinfo_message = f'''You don't have a phone number connected to your account yet. Please finsh signing up in order to see your account info.'''
+    else:
+        acountinfo_message = f'''First Name: {first_name}
+Email: {email}
+Phone Number: {phone_number}
+
+To change your account's email, use /changenumber
+To change your account's first name, use /changename'''
+
+    await context.bot.send_message(chat_id=user_id, text=acountinfo_message, parse_mode='Markdown')
+
+
+
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(f'''You can edit any of your account info using the follwowing commands:
 Change the name that {AI_NAME} calls you -  /changename
@@ -519,7 +572,7 @@ async def send_image(update: Update, context: ContextTypes.DEFAULT_TYPE, image_u
 
 async def send_daily_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:    
     today_date = time.time()
-
+    
     # Sending an image by a URL
     image_url = imagesdb.get_image(today_date)
     send_image(update, context, image_url)
@@ -763,6 +816,8 @@ def main():
 
     dp.add_handler(CommandHandler("help", help_command))
     dp.add_handler(CommandHandler("callme", callme_command))
+    dp.add_handler(CommandHandler("accountinfo", accountinfo_command))
+    dp.add_handler(CommandHandler("balance", balance_command))
 
     # dp.add_handler(CommandHandler("disable_voicenotes", disable_voice_notes_command))
     # dp.add_handler(CommandHandler("enable_voicenotes", enable_voice_notes_command))
@@ -771,7 +826,7 @@ def main():
     dp.add_handler(CommandHandler("changename", changename_command))
 
     
-    dp.add_handler(CommandHandler("purchase", paymentstest.purchase))
+    dp.add_handler(CommandHandler("deposit", paymentstest.purchase))
     dp.add_handler(CallbackQueryHandler(paymentstest.button))
 
     # Handle non-command messages
