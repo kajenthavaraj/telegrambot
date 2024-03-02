@@ -83,6 +83,33 @@ def get_data_field(unique_id, data_type, field_name):
         return lead_list
     else:
         return "fail 404 error"
+    
+
+def get_subscription_id(user_uid, influencer_uid):
+    data_type = "Subscription"  # Ensure this matches the exact case and spelling in Bubble
+    keys = ["user", "influencer"]
+    values = [user_uid, influencer_uid]
+    constraint_types = ["equals", "equals"]
+    
+    subscriptions = get_data_list(data_type, keys, values, constraint_types)
+    
+    if subscriptions == 404:
+        print("Error fetching subscriptions data.")
+        return None
+    elif not subscriptions or not subscriptions.get('results'):
+        print("Subscriptions list is empty or missing results.")
+        return None
+
+    try:
+        # Access the first item in the 'results' list, then get its '_id' field
+        subscription_id = subscriptions['results'][0]['_id']
+        print(f"Found subscription ID: {subscription_id} for user: {user_uid} and influencer: {influencer_uid}")
+        return subscription_id
+    except (IndexError, KeyError, TypeError) as e:
+        print(f"Error accessing subscription ID: {e}. Subscriptions data: {subscriptions}")
+        return None
+
+
 
 # Updates the database with a new value
 def update_database(unique_id, data_type, field_name, new_value, **kwargs):
@@ -160,6 +187,7 @@ def add_entry(data_type, data):
 
     else:
         print(response)
+        print(f"Error creating subscription in Bubble: {response.status_code} - {response.text}")
         return -1
     
 
