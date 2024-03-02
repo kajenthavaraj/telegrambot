@@ -253,6 +253,10 @@ def get_minutes_credits(unique_id):
     else:
         print("Failed to retrieve user data.")
         return None
+    
+
+print(get_minutes_credits("1709159113808x846032900816869600"))
+
 
 def get_chat_credits(unique_id):
     data_type = "User"
