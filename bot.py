@@ -373,13 +373,12 @@ async def handle_verification_response(update: Update, context: ContextTypes.DEF
 
 I can send you voice notes, text you picutres, and even be able to call you.
 
-To start a call enter /callme and I'll call the phone number you have with your account
+To start a call enter /callme and I'll call the phone number you have with your account.
 
-You have 5 free credits.
-
+You have 5 free credits. 
 To buy more credits or subscribe just enter /deposit
 
-Enter /help if you run into any issues""")
+Enter /help if you run into any issues.""")
 
             database.update_verification_status(BOT_USERNAME, user_id, "True")
             
@@ -468,6 +467,7 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         acountinfo_message = f'''You don't have a phone number connected to your account yet. Please finsh signing up in order to access your account info.'''
     else:
         acountinfo_message = f'''You have *{num_credits} InfluencerAI credits* available
+
 To add credits to your account or subscribe, use /deposit'''
 
     await context.bot.send_message(chat_id=user_id, text=acountinfo_message, parse_mode='Markdown')
@@ -502,12 +502,17 @@ To add credits to your account or subscribe, use /deposit'''
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(f'''You can edit any of your account info using the follwowing commands:
-Change the name that {AI_NAME} calls you -  /changename
-Change your account's phone number -  /changephone
+#     await update.message.reply_text(f'''You can edit any of your account info using the follwowing commands:
+# Change the name that {AI_NAME} calls you -  /changename
+# Change your account's phone number -  /changephone
                                     
-If you're facing any other issues, contact admin@tryinfluencer.ai''')
+# If you're facing any other issues, contact admin@tryinfluencer.ai''')
 
+    await update.message.reply_text(f'''If you want me to call you, use /callme
+To see your balance use /balance
+To buy more credits or subscribe, use /deposit
+
+If you're facing any issues, contact admin@tryinfluencer.ai''')
 
 # async def update_voice_notes_commands(user_id, voice_notes_status):
 #     global_commands = get_global_commands()
