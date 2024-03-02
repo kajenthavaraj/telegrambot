@@ -82,7 +82,7 @@ async def handle_phone_number_via_text(update: Update, context: ContextTypes.DEF
     keyboard = [[KeyboardButton("📞 Share Phone Number", request_contact=True)]]
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
 
-    retry_message = '''Please try again using the 'Share Phone Number' button below.'''
+    retry_message = '''Please try again using the '📞 Share Phone Number' button below.'''
             
     await update.message.reply_text(retry_message, reply_markup=reply_markup)
 

@@ -133,12 +133,10 @@ def call_openai_stream_gpt4_turbo(messages):
     final_end = time.time()
 
 
-
-
-
 ################################################################
 ################## End of Helper Functions #####################
 ################################################################
+
 
 
 
@@ -149,7 +147,7 @@ def call_openai_stream_gpt4_turbo(messages):
 ################# Response Creation Function ###################
 ################################################################
 
-def create_response(chat_history: dict, user_transcription: str, update: Update) -> str:
+def voicenotes_create_response(chat_history: dict, user_transcription: str, update: Update) -> str:
 
     user_first_name = update.message.from_user.first_name
 

@@ -8,6 +8,7 @@ import json
 import re
 import asyncio
 
+# import stripe
 from openai import OpenAI
 
 import response_engine
@@ -32,26 +33,31 @@ AGENT_ID = "veronica_avluv"
 
 bot = Bot(TOKEN)
 
+# stripe.api_key = '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'
 
 ##### Commands - need to add to bot father #####
 '''
 callme - Have VeronicaAI call your phone number
-deposit - Add credits to your account or subscribe
-balance - Display your credits balance
+purchase - Add credits to your account or subscribe
+accountinfo - Display your credits balance and information about your account
+disable_voicenotes - Disable voice notes (texting only)
+enable_voicenotes - Enable voice notes
 feedback - Provide feedback to improve the bot
 help - Display help message
+
+
 '''
 
 def get_global_commands():
     return[
         # BotCommand("start", "start the bot"),
         BotCommand("callme", f"Have {AI_NAME} call your phone number"),
-        BotCommand("deposit", "Add credits to your account or subscribe"),
+        BotCommand("purchase", "Add credits to your account or subscribe"),
         BotCommand("balance", "Display your credits balance"),
         BotCommand("feedback", "Provide feedback to improve the bot"),
-        # BotCommand("changename", f"Change the name that {AI_NAME} calls you"),
-        # BotCommand("changenumber", "Change the phone number for your account"),
-        # BotCommand("accountinfo", "Display the information about your account"),
+        BotCommand("changename", f"Change the name that {AI_NAME} calls you"),
+        BotCommand("changenumber", "Change the phone number for your account"),
+        BotCommand("accountinfo", "Display the information about your account"),
 
         BotCommand("help", "Display help message")
     ]
@@ -95,7 +101,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         image_url = "https://static.wixstatic.com/media/e1234e_36641e0f2be447bea722377cd31945d3~mv2.jpg/v1/crop/x_254,y_168,w_972,h_937/fill/w_506,h_488,al_c,q_80,usm_0.66_1.00_0.01,enc_auto/IMG_20231215_134002.jpg"
         await send_image(update, context, image_url)
 
-        message_text = f'''Hey {user_first_name}, welcome to {AI_NAME} 💕!
+        message_text = f'''Hey {user_first_name}, welcome to VeronicaAI 💕!
 
 I was created by Veronica Avluv and trained on everything you can know about her. I'm built to act, talk and sound just like she does.
 
@@ -369,16 +375,14 @@ async def handle_verification_response(update: Update, context: ContextTypes.DEF
             image_url = "https://static.wixstatic.com/media/e1234e_36641e0f2be447bea722377cd31945d3~mv2.jpg/v1/crop/x_254,y_168,w_972,h_937/fill/w_506,h_488,al_c,q_80,usm_0.66_1.00_0.01,enc_auto/IMG_20231215_134002.jpg"
             await send_image(update, context, image_url)
 
-            await update.message.reply_text(f"""You're all set to start using {AI_NAME}!
+            await update.message.reply_text("""You're all set to start using VeronicaAI!
 
 I can send you voice notes, text you picutres, and even be able to call you.
 
-To start a call enter /callme and I'll call the phone number you have with your account
+To start a call enter /call_me and I'll call the phone number you have with your account
 
-You have 5 free credits.
-
-To buy more credits or subscribe just enter /deposit
-
+To start a subscription or to buy credits just enter /payments
+                                            
 Enter /help if you run into any issues""")
 
             database.update_verification_status(BOT_USERNAME, user_id, "True")
@@ -449,91 +453,39 @@ Enter /help if you run into any issues""")
 
 # Commands
 
-
-async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_id = str(update.message.from_user.id)
-
-    # Get the user's credits info
-    unique_id = get_user_unique_id(update, context)
-    print(unique_id)
-    num_credits = connectBubble.get_minutes_credits(unique_id)
-
-    num_credits = str(round(num_credits, 2))
-
-
-    # Get user's phone number
-    status, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
-
-    if(status == False):
-        acountinfo_message = f'''You don't have a phone number connected to your account yet. Please finsh signing up in order to access your account info.'''
-    else:
-        acountinfo_message = f'''You have *{num_credits} InfluencerAI credits* available
-To add credits to your account or subscribe, use /deposit'''
-
-    await context.bot.send_message(chat_id=user_id, text=acountinfo_message, parse_mode='Markdown')
-
-
-
-# async def accountinfo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-#     user_id = str(update.message.from_user.id)
-#     unique_id = get_user_unique_id(update, context)
-
-#     first_name = connectBubble.get_user_first_name(unique_id)
-
-#     # Get user's email info
-#     email = connectBubble.get_user_email(unique_id)
-
-#     # Get user's phone number
-#     status, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
-
-#     if(status == False):
-#         acountinfo_message = f'''You don't have a phone number connected to your account yet. Please finsh signing up in order to see your account info.'''
-#     else:
-#         acountinfo_message = f'''First Name: {first_name}
-# Email: {email}
-# Phone Number: {phone_number}
-
-# To change your account's email, use /changenumber
-# To change your account's first name, use /changename'''
-
-#     await context.bot.send_message(chat_id=user_id, text=acountinfo_message, parse_mode='Markdown')
-
-
-
-
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(f'''You can edit any of your account info using the follwowing commands:
-Change the name that {AI_NAME} calls you -  /changename
+    await update.message.reply_text('''You can edit any of your account info using the follwowing commands:
+Change the name that VeronicaAI calls you -  /changename
 Change your account's phone number -  /changephone
                                     
 If you're facing any other issues, contact admin@tryinfluencer.ai''')
 
 
-# async def update_voice_notes_commands(user_id, voice_notes_status):
-#     global_commands = get_global_commands()
-#     if voice_notes_status == 'enabled':
-#         scoped_commands = [BotCommand("disable_voicenotes", "Disable voice notes")] + global_commands
-#     else:
-#         scoped_commands = [BotCommand("enable_voicenotes", "Enable voice notes")] + global_commands
+async def update_voice_notes_commands(user_id, voice_notes_status):
+    global_commands = get_global_commands()
+    if voice_notes_status == 'enabled':
+        scoped_commands = [BotCommand("disable_voicenotes", "Disable voice notes")] + global_commands
+    else:
+        scoped_commands = [BotCommand("enable_voicenotes", "Enable voice notes")] + global_commands
 
-#     scope = BotCommandScopeChat(chat_id=user_id)
-#     await bot.setMyCommands(commands=scoped_commands, scope=scope)
-
-
-# async def enable_voice_notes_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-#     user_id = str(update.message.from_user.id)
-
-#     context.user_data['voice_notes_status'] = "enabled"
-#     await update_voice_notes_commands(user_id, 'enabled')
-#     await update.message.reply_text("Voice notes enabled")
+    scope = BotCommandScopeChat(chat_id=user_id)
+    await bot.setMyCommands(commands=scoped_commands, scope=scope)
 
 
-# async def disable_voice_notes_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-#     user_id = str(update.message.from_user.id)
+async def enable_voice_notes_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = str(update.message.from_user.id)
 
-#     context.user_data['voice_notes_status'] = "disabled"
-#     await update_voice_notes_commands(user_id, 'disabled')
-#     await update.message.reply_text("Voice notes disabled")
+    context.user_data['voice_notes_status'] = "enabled"
+    await update_voice_notes_commands(user_id, 'enabled')
+    await update.message.reply_text("Voice notes enabled")
+
+
+async def disable_voice_notes_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = str(update.message.from_user.id)
+
+    context.user_data['voice_notes_status'] = "disabled"
+    await update_voice_notes_commands(user_id, 'disabled')
+    await update.message.reply_text("Voice notes disabled")
 
 
 async def callme_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -569,7 +521,7 @@ async def send_image(update: Update, context: ContextTypes.DEFAULT_TYPE, image_u
 
 async def send_daily_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:    
     today_date = time.time()
-    
+
     # Sending an image by a URL
     image_url = imagesdb.get_image(today_date)
     send_image(update, context, image_url)
@@ -637,9 +589,9 @@ def place_call(phone_number, prospect_name, prospect_email, unique_id, credits_l
 ################################################################
 
 async def handle_user_voice_note(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    transcription = await voicenoteHandler.transcribe_user_voice_note(update, context)
+    transcription = voicenoteHandler.transcribe_user_voice_note(update, context)
 
-    await handle_response(update, context, transcription)
+    handle_response(update, context, transcription)
 
 
 async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE, voicenote_transcription=None) -> None:
@@ -659,56 +611,49 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE, vo
 
     
     # Double check if user has enough credits if voice_notes_status is set to "enabled"
-    # if(context.user_data['voice_notes_status'] == "enabled"):
-    # Check if user has enough credits
-    unique_id = get_user_unique_id(update, context)#database.get_bubble_unique_id(BOT_USERNAME, user_id)
+    if(context.user_data['voice_notes_status'] == "enabled"):
+        # Check if user has enough credits
+        unique_id = get_user_unique_id(update, context)#database.get_bubble_unique_id(BOT_USERNAME, user_id)
 
-    current_minutes_credits = connectBubble.get_minutes_credits(unique_id)
-    print("current_minutes_credits: ", current_minutes_credits)
+        current_minutes_credits = connectBubble.get_minutes_credits(unique_id)
+        print("current_minutes_credits: ", current_minutes_credits)
 
-    if(current_minutes_credits <= 0):
-        # Send message to buy credits
-        await update.message.reply_text('''You are out of minutes for your account. Purchase more below in order to continue.''')
-        await paymentstest.purchase(update, context)
+        if(math.floor(current_minutes_credits) <= 0):
+            context.user_data['voice_notes_status'] = "disabled"
+
+
+    
+    # Check whether to use voice notes or chatbot
+    if(context.user_data['voice_notes_status'] == "disabled"):
+
+        # Add the current message to the user's chat history
+        database.add_chat_to_user_history(influencer_id, user_id, "user", "Fan: " + text)
+
+        # Retrieve the updated chat history
+        chat_history = database.get_user_chat_history(influencer_id, user_id)
+
+        # Format the chat history for display
+        parsed_chat_history = response_engine.parse_chat_history(chat_history)
+
+        # Generate a response based on the user's message history (modify this function as needed)
+        ai_response = response_engine.chatbot_create_response(parsed_chat_history, text, update)
+        database.add_chat_to_user_history(influencer_id, user_id, 'assistant', 'Influencer: ' + ai_response)
+        
+        # Send the chat history along with the AI response
+        # chat_history_str = '\n'.join(f"{chat['content']}" for chat in chat_history)
+        # print(f"Current Chat History: \n {chat_history_str}")
+
+        reply_array = response_engine.split_messages(ai_response)
+        reply_array = response_engine.remove_questions(reply_array)
+
+        for message_reply in reply_array:
+            print("message_reply: ", message_reply)
+            await update.message.reply_text(message_reply)
+            # asyncio.sleep(1)
+        
     else:
+        # Call voice notes handler
         await voicenoteHandler.voice_note_creator(update, context, text)
-
-    
-    # context.user_data['voice_notes_status'] = "disabled"
-
-
-    
-    # # Check whether to use voice notes or chatbot
-    # if(context.user_data['voice_notes_status'] == "disabled"):
-
-    #     # Add the current message to the user's chat history
-    #     database.add_chat_to_user_history(influencer_id, user_id, "user", "Fan: " + text)
-
-    #     # Retrieve the updated chat history
-    #     chat_history = database.get_user_chat_history(influencer_id, user_id)
-
-    #     # Format the chat history for display
-    #     parsed_chat_history = response_engine.parse_chat_history(chat_history)
-
-    #     # Generate a response based on the user's message history (modify this function as needed)
-    #     ai_response = response_engine.chatbot_create_response(parsed_chat_history, text, update)
-    #     database.add_chat_to_user_history(influencer_id, user_id, 'assistant', 'Influencer: ' + ai_response)
-        
-    #     # Send the chat history along with the AI response
-    #     # chat_history_str = '\n'.join(f"{chat['content']}" for chat in chat_history)
-    #     # print(f"Current Chat History: \n {chat_history_str}")
-
-    #     reply_array = response_engine.split_messages(ai_response)
-    #     reply_array = response_engine.remove_questions(reply_array)
-
-    #     for message_reply in reply_array:
-    #         print("message_reply: ", message_reply)
-    #         await update.message.reply_text(message_reply)
-    #         # asyncio.sleep(1)
-        
-    # else:
-    #     # Call voice notes handler
-    #     await voicenoteHandler.voice_note_creator(update, context, text)
 
 
 '''
@@ -805,21 +750,23 @@ def main():
     
     # dp.add_handler(MessageHandler(filters.TEXT, handle_email))
     dp.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-        
+    
+
+    # dp.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_verification_response))
+    
     dp.add_handler(MessageHandler(filters.VOICE, handle_user_voice_note))
 
     dp.add_handler(CommandHandler("help", help_command))
     dp.add_handler(CommandHandler("callme", callme_command))
-    dp.add_handler(CommandHandler("balance", balance_command))
 
-    # dp.add_handler(CommandHandler("accountinfo", accountinfo_command))
-    # dp.add_handler(CommandHandler("changenumber", changenumber_command))
-    # dp.add_handler(CommandHandler("changename", changename_command))
+    dp.add_handler(CommandHandler("disable_voicenotes", disable_voice_notes_command))
+    dp.add_handler(CommandHandler("enable_voicenotes", enable_voice_notes_command))
 
-    # dp.add_handler(CommandHandler("disable_voicenotes", disable_voice_notes_command))
-    # dp.add_handler(CommandHandler("enable_voicenotes", enable_voice_notes_command))
+    dp.add_handler(CommandHandler("changenumber", changenumber_command))
+    dp.add_handler(CommandHandler("changename", changename_command))
+
     
-    dp.add_handler(CommandHandler("deposit", paymentstest.purchase))
+    dp.add_handler(CommandHandler("purchase", paymentstest.purchase))
     dp.add_handler(CallbackQueryHandler(paymentstest.button))
 
     # Handle non-command messages
