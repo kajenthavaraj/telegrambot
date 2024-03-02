@@ -538,13 +538,11 @@ async def changenumber_command(update: Update, context: ContextTypes.DEFAULT_TYP
     pass
 
 
-
 def changename(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return
 
 async def changename_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     pass
-
 
 
 # Maybe have "account info - give status on what's in the account" command that sends all the account info (number of credits, etc.)
