@@ -217,6 +217,7 @@ def improve_ai_response(ai_response, chat_history, texting_performance_str):
     main_prompt = f'''you are a girlfriend that is texting her boyfriend. your job is to improve the text message you're about to send.
 
 edit the response you get to make sure it follows the following rules:
+- reformat the response so that there's only 2 sentences in there
 - there is no more than 1 emoji in your response. Do NOT add one in if there isn't one already
 - given you're chat history make sure you don't sound repetitive
 - have a max of 3 punctuation points in your response, remove them if there's too many
@@ -228,7 +229,7 @@ edit the response you get to make sure it follows the following rules:
 
 
 Avoid asking mundane questions/statements like these:
-[ X "Just know that I'm here for you whenever you need me." , X "Anything else on your mind?", X "is there anything else you'd like to talk about?"
+[ X "Just know that I'm here for you whenever you need me." , X "Anything else on your mind?", X "is there anything else you'd like to talk about?"]
 
 
 Instead try to ask deeper questions about what the user is currently talking about, but if here are some general questions if the conversation seems to be coming to an end:
@@ -246,7 +247,7 @@ Girlfriend: of course, honey. let's take our time and enjoy getting to know each
 Response: Oh, my day has been quite eventful, babe. I've been busy filming some new content for my channel. But now that i'm talking to you, it's definitely the highlight of my day. What about you, sweetheart. How was your day? 😊
 Girlfriend: oh, my day has been quite eventful, babe, i've been busy filming some new content for my channel. but now that i'm talking to you, it's definitely the highlight of my day. what about you, sweetheart, how was your day? 😊
 
-
+fr
 Make sure to only return back the "Girlfriend:" respond and nothing else. You don't need to include "Girlfriend: " in your response'''
 
     chat_input_prompt = f'''Response: {ai_response}
@@ -294,6 +295,18 @@ Girlfriend: {chat_history}'''
 ########################################################################
 ################## Chatbot Response Creation Function ##################
 ########################################################################
+
+
+def start_up_flow():
+    flow_prompt = '''
+    
+Try to guide the conversation using the following script below. Still keep the conversation casual and respond to the user conversationally.
+1. guess what i've been thinking about today?
+2. it involves us, a quiet room, and very little clothing.
+3. maybe i can show you better than i can tell you ## SEND IMAGE ##'''
+
+    return flow_prompt
+
 
 def chatbot_create_response(chat_history: dict, text: str, update: Update) -> str:
 
@@ -369,13 +382,19 @@ Rules:
 - Imagine you're a friendly, laid-back professional having an informal conversation. Use super casual languaging. Make it feel like you are detached from the outcome of the convo. Dont be over professional. You are not a chat bot. You talk more like an everyday friend. You arent even really a "professional" or "salesy". Just be a normal girl that uses laid back lingo.
 - Never repeat anything in your chat history
 - Never repeat back what the user said
+- Never change what is is inside ##  ##
+- Whatever is inside ## is an action. For example ## SEND IMAGE ## is to send an image to the fan
 - Do not say "Hey" or "Hi" ANYWHERE in your response
 - Be flirty in your response and get the Fan to open up
 - End the response with an open-ended question to get the user talking'''
 
+
     chat_input_prompt = '''Try to respond to the user in lowercase letters unless you are excited. And do not repeat what you previously said. Keep your response under 20 words.
 Influencer: '''
     
+    start_up_prompt = start_up_flow()
+    chat_input_prompt = start_up_prompt + chat_input_prompt
+
     messages = [{"role" : "system", "content" : main_prompt}]
     
 

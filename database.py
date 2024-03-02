@@ -241,7 +241,7 @@ def get_bubble_unique_id(influencer_id, user_id):
 
     # Attempt to fetch the subscription document
     user_subscription_doc = user_subscription_ref.get()
-
+    
     # Check if the document exists and contains the 'bubble_user_unique_id' field
     if user_subscription_doc.exists:
         user_data = user_subscription_doc.to_dict()
