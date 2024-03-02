@@ -146,7 +146,7 @@ def create_user(email, unparsed_phone_number, first_name):
         "first_name": first_name,
         "area_code": area_code,
         "phone_number": str(phone_number),
-        "credits": 0,  # Initialize minutes credits with 0
+        "credits": 5,  # Initialize minutes credits with 5
         "chat_credits": 15, # Initialize chat credits with 15
         "is_influencer": "no",
         "telegram_phone_number": str(unparsed_phone_number),
@@ -368,6 +368,10 @@ def get_minutes_credits(unique_id):
     else:
         print("Failed to retrieve user data.")
         return None
+    
+
+print(get_minutes_credits("1709159113808x846032900816869600"))
+
 
 def get_chat_credits(unique_id):
     data_type = "User"
