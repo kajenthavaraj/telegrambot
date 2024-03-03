@@ -276,6 +276,57 @@ def check_user_subscription(bubble_unique_id, influencer_uid):
     return False, None
 
 
+def check_user_subscription_more_detail(bubble_unique_id, influencer_uid):
+    # Assuming 'bubbledb.get_data' is a method to fetch data based on unique ID and data type.
+    user_data_type = "User"
+    subscription_data_type = "Subscription"
+
+    # Fetch user data from Bubble database
+    user_data = bubbledb.get_data(bubble_unique_id, user_data_type)
+    print("The user data gotten is: ", user_data)
+
+    # Check if user data was successfully fetched
+    if user_data == 404 or not user_data:
+        print("User not found or error fetching user data.")
+        return False, None, None  # Also return None for next_billing_date when user data is not found
+
+    # Access the 'Subscriptions' field which is expected to contain a list of subscription IDs
+    subscriptions = user_data.get('subscriptions', [])
+    print("User subscriptions:", subscriptions)
+
+    if not subscriptions:
+        print("User does not have any subscriptions.")
+        return False, None, None  # Also return None for next_billing_date when there are no subscriptions
+
+    # Iterate through each subscription ID to fetch subscription details
+    for subscription_id in subscriptions:
+        # Fetching detailed data for each subscription from Bubble database
+        sub_data = bubbledb.get_data(subscription_id, subscription_data_type)
+
+        # Continue if specific subscription data not found or error occurred
+        if sub_data == 404 or not sub_data:
+            print(f"Subscription data not found for ID: {subscription_id}")
+            continue
+
+        # Check if the subscription's 'influencer' field matches the given influencer UID
+        if sub_data.get('influencer') == influencer_uid:
+            subscription_status = sub_data.get('status')
+            # Fetch the next billing date from the subscription data
+            next_billing_date = sub_data.get('next_billing_date', 'N/A')
+            if subscription_status == "complete":
+                print("User has an active subscription with the influencer.")
+                # Return the next billing date along with the subscription status
+                return True, subscription_status, next_billing_date
+            else:
+                # Return the next billing date even if the subscription is not "complete"
+                return False, subscription_status, next_billing_date
+
+    # If no matching subscription is found
+    print("User does not have an active subscription with the influencer.")
+    return False, None, None  # Also return None for next_billing_date when no matching subscription is found
+
+
+
 
 
 def get_user_subscription(bubble_unique_id, influencer_uid):
