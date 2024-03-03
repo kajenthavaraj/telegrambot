@@ -242,7 +242,7 @@ def check_user_subscription(bubble_unique_id, influencer_uid):
     # Check if user data was successfully fetched
     if user_data == 404 or not user_data:
         print("User not found or error fetching user data.")
-        return False
+        return False, None
 
     # Access the 'Subscriptions' field which is expected to contain a list of subscription IDs
     subscriptions = user_data.get('subscriptions', [])
@@ -250,7 +250,7 @@ def check_user_subscription(bubble_unique_id, influencer_uid):
 
     if not subscriptions:
         print("User does not have any subscriptions.")
-        return False
+        return False, None
 
     # Iterate through each subscription ID to fetch subscription details
     for subscription_id in subscriptions:
@@ -278,38 +278,47 @@ def check_user_subscription(bubble_unique_id, influencer_uid):
 
 
 
-def get_user_subscription(bubble_unique_id):
-    data_type = "User"
+def get_user_subscription(bubble_unique_id, influencer_uid):
+    print("The get_user_subscription function is being called")
+    user_data_type = "User"
+    
     # Fetch the user data
-    user_data = bubbledb.get_data(bubble_unique_id, data_type)
+    user_data = bubbledb.get_data(bubble_unique_id, user_data_type)
 
     if user_data == 404:
         print("User not found or error fetching user data.")
         return None
 
-    # Fetch the unique ID of the subscription associated with the user
-    subscription_unique_id = user_data.get('subscription_telegram', None)
+    # Access the 'subscriptions' list from the user data
+    subscription_ids = user_data.get('subscriptions', [])
 
-    if not subscription_unique_id:
-        print("User does not have an active subscription.")
+    if not subscription_ids:
+        print("User does not have any subscriptions.")
         return None
 
-    # Fetch the subscription data using its unique ID
-    subscription_data = bubbledb.get_data(subscription_unique_id, "Subscription_telegram")
+    # Iterate through each subscription ID to fetch subscription details
+    for subscription_id in subscription_ids:
+        subscription_data = bubbledb.get_data(subscription_id, "Subscription")
 
-    if subscription_data == 404:
-        print("Subscription data not found or error fetching subscription data.")
-        return None
+        if subscription_data == 404:
+            print(f"Subscription data not found for ID: {subscription_id}")
+            continue
+        
+        # Check if the subscription's 'influencer' field matches the given influencer UID
+        if subscription_data.get('influencer') == influencer_uid:
+            # Retrieve the Stripe subscription ID from the subscription data
+            stripe_subscription_id = subscription_data.get('subscription_stripe_id', None)
+            print(f"Stripe subscription ID: {stripe_subscription_id}")
+            
+            if not stripe_subscription_id:
+                print("Stripe subscription ID not found in the subscription data.")
+                continue  # Continue searching in case of multiple subscriptions
+                
+            return stripe_subscription_id
 
-    # Retrieve the Stripe subscription ID from the subscription data
-    stripe_subscription_id = subscription_data.get('subscription_id', None)
-    print(f"Stripe subscription ID: {stripe_subscription_id}")
+    print("No matching subscription found for the influencer.")
+    return None
 
-    if not stripe_subscription_id:
-        print("Stripe subscription ID not found in the subscription data.")
-        return None
-
-    return stripe_subscription_id
 
 
 
