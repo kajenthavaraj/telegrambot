@@ -3,6 +3,8 @@ import requests
 import bubbledb
 import phonenumbers
 import loginuser
+import json
+
 import CONSTANTS
 
 def extract_country_code_and_number(phone_number):
@@ -144,7 +146,7 @@ def create_user(email, unparsed_phone_number, first_name):
         "first_name": first_name,
         "area_code": area_code,
         "phone_number": str(phone_number),
-        "credits": 5,  # Initialize minutes credits with 5
+        "credits": 0,  # Initialize minutes credits with 0
         "chat_credits": 15, # Initialize chat credits with 15
         "is_influencer": "no",
         "telegram_phone_number": str(unparsed_phone_number),
@@ -159,7 +161,6 @@ def create_user(email, unparsed_phone_number, first_name):
 
 # result = create_user("joemamabad@gmail.com", "16477667841", "JoeMama")
 # print(result)
-
 
 
 # Creating subscription
@@ -191,10 +192,185 @@ def add_subscription(user_uid, telegram_user_id, influencer_uid):
     # Return the subscription_id
     return sub_id
 
-# Example usage
-# subscription_id = add_subscription("1708537766913x417354630463497660", CONSTANTS.IUFLUENCER_UID)
-# print(subscription_id)
-# # 1708669938493x901799643263067500
+def update_subscription(user_uid, telegram_user_id, influencer_uid, subscription_ID, subscription_plan, status, last_billing_date, next_billing_date):
+    print("Attempting to update subscription entry in Bubble...")
+
+    # Attempt to find the existing subscription for the specific influencer
+    existing_sub_id = bubbledb.get_subscription_id(user_uid, influencer_uid)
+
+    if existing_sub_id:
+        print(f"Existing subscription found: {existing_sub_id}. Updating with new data...")
+
+        # Prepare the new data for the subscription
+        updated_data = {
+            "subscription_stripe_id": subscription_ID,
+            "subscription_plan": subscription_plan,
+            "status": status,
+            "last_billing_date": last_billing_date,
+            "next_billing_date": next_billing_date,
+        }
+
+        # Update each field in the subscription
+        response = True
+        for field, value in updated_data.items():
+            update_response = bubbledb.update_database(existing_sub_id, "Subscription", field, value)
+            if update_response != 204:
+                response = False
+                print(f"Failed to update {field} in Bubble.")
+                break  # Stop updating if any field update fails
+
+        if response:
+            print("Subscription updated successfully.")
+            return True
+        else:
+            print("Failed to update subscription in Bubble.")
+            return False
+    else:
+        print("No existing subscription found for this influencer. Ensure the influencer ID is correct and an entry exists.")
+        return False
+
+
+def check_user_subscription(bubble_unique_id, influencer_uid):
+    # Assuming 'bubbledb.get_data' is a method to fetch data based on unique ID and data type.
+    user_data_type = "User"
+    subscription_data_type = "Subscription"
+
+    # Fetch user data from Bubble database
+    user_data = bubbledb.get_data(bubble_unique_id, user_data_type)
+    print("The user data gotten is: ", user_data)
+
+    # Check if user data was successfully fetched
+    if user_data == 404 or not user_data:
+        print("User not found or error fetching user data.")
+        return False, None
+
+    # Access the 'Subscriptions' field which is expected to contain a list of subscription IDs
+    subscriptions = user_data.get('subscriptions', [])
+    print("User subscriptions:", subscriptions)
+
+    if not subscriptions:
+        print("User does not have any subscriptions.")
+        return False, None
+
+    # Iterate through each subscription ID to fetch subscription details
+    for subscription_id in subscriptions:
+        # Fetching detailed data for each subscription from Bubble database
+        sub_data = bubbledb.get_data(subscription_id, subscription_data_type)
+
+        # Continue if specific subscription data not found or error occurred
+        if sub_data == 404 or not sub_data:
+            print(f"Subscription data not found for ID: {subscription_id}")
+            continue
+
+        # Check if the subscription's 'influencer' field matches the given influencer UID
+        if sub_data.get('influencer') == influencer_uid:
+            subscription_status = sub_data.get('status')
+            if subscription_status == "complete":
+                print("User has an active subscription with the influencer.")
+                return True, subscription_status  # User is subscribed to the influencer and it's active
+            else:
+                return False, subscription_status
+
+    # If no matching subscription is found
+    print("User does not have an active subscription with the influencer.")
+    return False, None
+
+
+def check_user_subscription_more_detail(bubble_unique_id, influencer_uid):
+    # Assuming 'bubbledb.get_data' is a method to fetch data based on unique ID and data type.
+    user_data_type = "User"
+    subscription_data_type = "Subscription"
+
+    # Fetch user data from Bubble database
+    user_data = bubbledb.get_data(bubble_unique_id, user_data_type)
+    print("The user data gotten is: ", user_data)
+
+    # Check if user data was successfully fetched
+    if user_data == 404 or not user_data:
+        print("User not found or error fetching user data.")
+        return False, None, None  # Also return None for next_billing_date when user data is not found
+
+    # Access the 'Subscriptions' field which is expected to contain a list of subscription IDs
+    subscriptions = user_data.get('subscriptions', [])
+    print("User subscriptions:", subscriptions)
+
+    if not subscriptions:
+        print("User does not have any subscriptions.")
+        return False, None, None  # Also return None for next_billing_date when there are no subscriptions
+
+    # Iterate through each subscription ID to fetch subscription details
+    for subscription_id in subscriptions:
+        # Fetching detailed data for each subscription from Bubble database
+        sub_data = bubbledb.get_data(subscription_id, subscription_data_type)
+
+        # Continue if specific subscription data not found or error occurred
+        if sub_data == 404 or not sub_data:
+            print(f"Subscription data not found for ID: {subscription_id}")
+            continue
+
+        # Check if the subscription's 'influencer' field matches the given influencer UID
+        if sub_data.get('influencer') == influencer_uid:
+            subscription_status = sub_data.get('status')
+            # Fetch the next billing date from the subscription data
+            next_billing_date = sub_data.get('next_billing_date', 'N/A')
+            if subscription_status == "complete":
+                print("User has an active subscription with the influencer.")
+                # Return the next billing date along with the subscription status
+                return True, subscription_status, next_billing_date
+            else:
+                # Return the next billing date even if the subscription is not "complete"
+                return False, subscription_status, next_billing_date
+
+    # If no matching subscription is found
+    print("User does not have an active subscription with the influencer.")
+    return False, None, None  # Also return None for next_billing_date when no matching subscription is found
+
+
+
+
+
+def get_user_subscription(bubble_unique_id, influencer_uid):
+    print("The get_user_subscription function is being called")
+    user_data_type = "User"
+    
+    # Fetch the user data
+    user_data = bubbledb.get_data(bubble_unique_id, user_data_type)
+
+    if user_data == 404:
+        print("User not found or error fetching user data.")
+        return None
+
+    # Access the 'subscriptions' list from the user data
+    subscription_ids = user_data.get('subscriptions', [])
+
+    if not subscription_ids:
+        print("User does not have any subscriptions.")
+        return None
+
+    # Iterate through each subscription ID to fetch subscription details
+    for subscription_id in subscription_ids:
+        subscription_data = bubbledb.get_data(subscription_id, "Subscription")
+
+        if subscription_data == 404:
+            print(f"Subscription data not found for ID: {subscription_id}")
+            continue
+        
+        # Check if the subscription's 'influencer' field matches the given influencer UID
+        if subscription_data.get('influencer') == influencer_uid:
+            # Retrieve the Stripe subscription ID from the subscription data
+            stripe_subscription_id = subscription_data.get('subscription_stripe_id', None)
+            print(f"Stripe subscription ID: {stripe_subscription_id}")
+            
+            if not stripe_subscription_id:
+                print("Stripe subscription ID not found in the subscription data.")
+                continue  # Continue searching in case of multiple subscriptions
+                
+            return stripe_subscription_id
+
+    print("No matching subscription found for the influencer.")
+    return None
+
+
 
 
 
@@ -252,8 +428,6 @@ def get_minutes_credits(unique_id):
     else:
         print("Failed to retrieve user data.")
         return None
-    
-
 
 def get_chat_credits(unique_id):
     data_type = "User"

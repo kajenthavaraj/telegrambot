@@ -48,7 +48,7 @@ def stripe_webhook():
         metadata = session.get('metadata', {})
         telegram_user_id = metadata.get('telegram_user_id')
         influencer_id = CONSTANTS.BOT_USERNAME
-        influencer_UID = CONSTANTS.IUFLUENCER_UID 
+        influencer_UID = CONSTANTS.INFLUENCER_UID 
         bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
         #bubble_unique_id = '1705089991492x506710590267403400'
 
@@ -66,7 +66,7 @@ def stripe_webhook():
 
             print("The telegram ID is: ", telegram_user_id)
                     
-            stripe_subscription_id = subscription.get('id')
+            stripe_subscription_id = session.get('subscription') 
             items = subscription.get('items', {}).get('data')
             if items and len(items) > 0:
                 subscription_plan = items[0].get('plan', {}).get('nickname', 'No plan nickname')
