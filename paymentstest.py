@@ -10,8 +10,9 @@ import json
 import stripe 
 import CONSTANTS
 from database import get_bubble_unique_id
-from connectBubble import get_user_subscription, check_user_subscription
-
+from connectBubble import get_user_subscription, check_user_subscription, update_subscription, check_user_subscription_more_detail
+import connectBubble
+from datetime import datetime 
 
 import openai
 
@@ -23,7 +24,7 @@ BOTUSERNAME: Final = '@veronicaavluvaibot'
 
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def start(update: Update, context: ContextTypes) -> None:
     # Extract the start parameter if present
     start_args = context.args  # context.args contains the parameters passed after /start
     
@@ -41,7 +42,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(response_message)
 
 
-async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def handle_response(update: Update, context: ContextTypes) -> None:
     # Extract the text from the user's message
     user_message = update.message.text
 
@@ -53,7 +54,7 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await update.message.reply_text(response_message)
 
 
-async def purchase(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def purchase(update: Update, context: ContextTypes) -> None:
     keyboard = [
         [InlineKeyboardButton("5 minutes ($5)", callback_data='5')],
         [InlineKeyboardButton("10 minutes ($10)", callback_data='10')],
@@ -63,9 +64,9 @@ async def purchase(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text('Please choose the duration you’d like to purchase:', reply_markup=reply_markup)
 
-async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def subscribe(update: Update, context: ContextTypes) -> None:
     influencer_id = CONSTANTS.BOT_USERNAME 
-    influencer_UID = CONSTANTS.IUFLUENCER_UID
+    influencer_UID = CONSTANTS.INFLUENCER_UID
     user_id = str(update.effective_user.id)
 
 
@@ -93,75 +94,102 @@ async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text('Choose your subscription plan:', reply_markup=reply_markup)
 
-async def manage_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def manage_subscription(update: Update, context: CallbackContext) -> None:
+    query = update.callback_query
+    influencer_id = CONSTANTS.BOT_USERNAME 
+    influencer_UID = CONSTANTS.INFLUENCER_UID
     user_id = str(update.effective_user.id)
-    influencer_id = CONSTANTS.BOT_USERNAME
+
+
     bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
+    print("The bubble ID is: ", bubble_unique_id)
 
     if not bubble_unique_id:
-        await update.message.reply_text("Error retrieving your subscription information. Please try again.")
-        return
-
-    existing_subscription = check_user_subscription(bubble_unique_id, influencer_id)
+            print("Bubble unique ID not found")
+            await update.message.reply_text("Error retrieving your subscription information. Please try again.")
     
-    if existing_subscription:
-        # User has an active subscription
+    # The function now returns a boolean indicating active status and the subscription status
+    has_active_subscription, subscription_status = check_user_subscription(bubble_unique_id, influencer_UID) 
+    print(f"Active subscription status: {has_active_subscription}, Status: {subscription_status}")
+
+    if has_active_subscription:
         keyboard = [
             [InlineKeyboardButton("Cancel Subscription", callback_data='cancel_subscription')],
-            [InlineKeyboardButton("Upgrade Subscription", callback_data='upgrade_subscription')],
-            [InlineKeyboardButton("Downgrade Subscription", callback_data='downgrade_subscription')]
+            [InlineKeyboardButton("Check Balance and Subscription ", callback_data='check_account')]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text('Manage your subscription:', reply_markup=reply_markup)
     else:
-        # User does not have an active subscription
         await update.message.reply_text("You currently do not have an active subscription. Please use /subscribe to subscribe.")
 
-async def handle_subscription_cancellation(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_subscription_cancellation(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
-    user_id = str(query.from_user.id)
-    print(f"Handling subscription cancellation for user ID: {user_id}")
+    user_id = str(update.effective_user.id)
+    influencer_id = CONSTANTS.BOT_USERNAME
+    influencer_UID = CONSTANTS.INFLUENCER_UID
 
-    bubble_unique_id = get_bubble_unique_id(CONSTANTS.BOT_USERNAME, user_id)
-    print(f"Bubble unique ID retrieved: {bubble_unique_id}")
+    bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
 
-    # Retrieve the subscription ID, which is also the Stripe subscription ID
-    subscription_id = get_user_subscription(bubble_unique_id)
-    print(f"Subscription ID (also Stripe ID): {subscription_id}")
+    print("going to try and get user subscription now")
+    # Using the get_user_subscription function to directly retrieve the Stripe subscription ID
+    stripe_subscription_id = get_user_subscription(bubble_unique_id, influencer_UID)
+    print("stripe subscriptin id after the function is called: ", stripe_subscription_id)
 
-    if not subscription_id:
-        print("No active subscription found.")
-        await query.edit_message_text("You do not have an active subscription to cancel.")
-        return
-
-    # Cancel the subscription with Stripe
-    if cancel_stripe_subscription(subscription_id):
-        print("Stripe subscription cancelled successfully.")
-        # If successful, update the status in Bubble
-        if update_database(bubble_unique_id, "User", "subscription_telegram", None) == 204:
-            await query.edit_message_text("Your subscription has been successfully cancelled.")
-        else:
-            await query.edit_message_text("Failed to update subscription status in our system. Please contact support.")
+    if stripe_subscription_id:
+        try:
+            # Cancel the subscription with Stripe
+            stripe.Subscription.delete(stripe_subscription_id)
+            # Assuming update_subscription can also update the status to 'cancelled'
+            successful_update = update_subscription(user_uid=bubble_unique_id, telegram_user_id=user_id, influencer_uid=influencer_UID, subscription_ID=stripe_subscription_id, subscription_plan=None, status="cancelled", last_billing_date=None, next_billing_date=None)
+            if successful_update:
+                await query.edit_message_text("Your subscription has been successfully cancelled.")
+            else:
+                raise Exception("Failed to update Bubble database.")
+        except Exception as e:
+            print(f"Error cancelling subscription with Stripe: {e}")
+            await query.edit_message_text("Failed to cancel the subscription. Please contact support.")
     else:
-        print("Failed to cancel the subscription with Stripe.")
-        await query.edit_message_text("Failed to cancel the subscription with Stripe. Please contact support.")
+        await query.edit_message_text("You do not have an active subscription to cancel.")
 
 
-def cancel_stripe_subscription(subscription_id):
-    try:
-        stripe.Subscription.delete(subscription_id)
-        return True
-    except Exception as e:
-        print(f"Error canceling subscription with Stripe: {e}")
-        return False
+async def balance_command(update: Update, context: ContextTypes) -> None:
+    query = update.callback_query
+    user_id = str(update.effective_user.id)
+    influencer_id = CONSTANTS.BOT_USERNAME
+    influencer_UID = CONSTANTS.INFLUENCER_UID
 
-async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
+
+    # Assuming get_minutes_credits returns the number of credits the user has
+    num_credits = connectBubble.get_minutes_credits(bubble_unique_id)
+    num_credits = str(round(num_credits, 2))
+
+    has_active_subscription, subscription_status, next_billing_date = check_user_subscription_more_detail(bubble_unique_id, influencer_UID)
+
+    # Prepare message content based on subscription status and credits
+    if has_active_subscription:
+        next_billing_date = datetime.strptime(next_billing_date, "%Y-%m-%dT%H:%M:%S.%fZ")
+        formatted_next_billing_date = next_billing_date.strftime("%Y-%m-%d")
+        subscription_message = f"You have an active subscription. Your next billing date is on {formatted_next_billing_date}."
+    else:
+        subscription_message = "You do not have an active subscription."
+
+    credits_message = f"Your available credits: {num_credits}" if num_credits is not None else "Error retrieving credits information."
+
+    # Send message to user
+    message_content = f"{subscription_message}\n{credits_message}"
+    await query.edit_message_text(message_content)
+
+
+
+
+async def button(update: Update, context: ContextTypes) -> None:
     query = update.callback_query
     await query.answer()
     user_id = str(update.effective_user.id)
 
     
-    if query.data.startswith('subscribe') or query.data in ['cancel_subscription', 'upgrade_subscription', 'downgrade_subscription']:
+    if query.data.startswith('subscribe') or query.data in ['cancel_subscription', 'check_account']:
         # Subscription handling logic
         if query.data == 'subscribe_monthly':
             price_id = 'price_1OnAcnBo1ZNr3GjAKryjcBaa'  # Replace with your Stripe price ID
@@ -172,14 +200,12 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             # Call your function to handle subscription cancellation
             await handle_subscription_cancellation(update, context)
             return
-        elif query.data == 'upgrade_subscription':
-            # Handle subscription upgrade
-            # You'll need to implement this part
+        
+        elif query.data == 'check_account':
+            # Call your function to handle subscription cancellation
+            await balance_command(update, context)
             return
-        elif query.data == 'downgrade_subscription':
-            # Handle subscription downgrade
-            # You'll need to implement this part
-            return
+        
 
         # Create a Stripe Checkout Session for subscription
         checkout_session = stripe.checkout.Session.create(
