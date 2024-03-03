@@ -129,8 +129,10 @@ async def handle_subscription_cancellation(update: Update, context: CallbackCont
 
     bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
 
+    print("going to try and get user subscription now")
     # Using the get_user_subscription function to directly retrieve the Stripe subscription ID
-    stripe_subscription_id = get_user_subscription(bubble_unique_id)
+    stripe_subscription_id = get_user_subscription(bubble_unique_id, influencer_UID)
+    print("stripe subscriptin id after the function is called: ", stripe_subscription_id)
 
     if stripe_subscription_id:
         try:
