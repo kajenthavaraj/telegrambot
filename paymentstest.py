@@ -65,7 +65,7 @@ async def purchase(update: Update, context: ContextTypes) -> None:
 
 async def subscribe(update: Update, context: ContextTypes) -> None:
     influencer_id = CONSTANTS.BOT_USERNAME 
-    influencer_UID = CONSTANTS.IUFLUENCER_UID
+    influencer_UID = CONSTANTS.INFLUENCER_UID
     user_id = str(update.effective_user.id)
 
 
@@ -95,12 +95,21 @@ async def subscribe(update: Update, context: ContextTypes) -> None:
 
 async def manage_subscription(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
+    influencer_id = CONSTANTS.BOT_USERNAME 
+    influencer_UID = CONSTANTS.INFLUENCER_UID
     user_id = str(update.effective_user.id)
-    influencer_id = CONSTANTS.BOT_USERNAME
-    influencer_UID = CONSTANTS.IUFLUENCER_UID
+
 
     bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
-    has_active_subscription, subscription_status = check_user_subscription(bubble_unique_id, influencer_UID)
+    print("The bubble ID is: ", bubble_unique_id)
+
+    if not bubble_unique_id:
+            print("Bubble unique ID not found")
+            await update.message.reply_text("Error retrieving your subscription information. Please try again.")
+    
+    # The function now returns a boolean indicating active status and the subscription status
+    has_active_subscription, subscription_status = check_user_subscription(bubble_unique_id, influencer_UID) 
+    print(f"Active subscription status: {has_active_subscription}, Status: {subscription_status}")
 
     if has_active_subscription:
         keyboard = [
@@ -119,6 +128,7 @@ async def handle_subscription_cancellation(update: Update, context: CallbackCont
     influencer_UID = CONSTANTS.INFLUENCER_UID
 
     bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
+
     # Using the get_user_subscription function to directly retrieve the Stripe subscription ID
     stripe_subscription_id = get_user_subscription(bubble_unique_id)
 
