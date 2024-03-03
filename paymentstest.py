@@ -10,8 +10,9 @@ import json
 import stripe 
 import CONSTANTS
 from database import get_bubble_unique_id
-from connectBubble import get_user_subscription, check_user_subscription, update_subscription
-
+from connectBubble import get_user_subscription, check_user_subscription, update_subscription, check_user_subscription_more_detail
+import connectBubble
+from datetime import datetime 
 
 import openai
 
@@ -114,7 +115,7 @@ async def manage_subscription(update: Update, context: CallbackContext) -> None:
     if has_active_subscription:
         keyboard = [
             [InlineKeyboardButton("Cancel Subscription", callback_data='cancel_subscription')],
-            [InlineKeyboardButton("Check Credits and Subscription", callback_data='check_credits')]
+            [InlineKeyboardButton("Check Balance and Subscription ", callback_data='check_account')]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text('Manage your subscription:', reply_markup=reply_markup)
@@ -151,6 +152,35 @@ async def handle_subscription_cancellation(update: Update, context: CallbackCont
         await query.edit_message_text("You do not have an active subscription to cancel.")
 
 
+async def balance_command(update: Update, context: ContextTypes) -> None:
+    query = update.callback_query
+    user_id = str(update.effective_user.id)
+    influencer_id = CONSTANTS.BOT_USERNAME
+    influencer_UID = CONSTANTS.INFLUENCER_UID
+
+    bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
+
+    # Assuming get_minutes_credits returns the number of credits the user has
+    num_credits = connectBubble.get_minutes_credits(bubble_unique_id)
+    num_credits = str(round(num_credits, 2))
+
+    has_active_subscription, subscription_status, next_billing_date = check_user_subscription_more_detail(bubble_unique_id, influencer_UID)
+
+    # Prepare message content based on subscription status and credits
+    if has_active_subscription:
+        next_billing_date = datetime.strptime(next_billing_date, "%Y-%m-%dT%H:%M:%S.%fZ")
+        formatted_next_billing_date = next_billing_date.strftime("%Y-%m-%d")
+        subscription_message = f"You have an active subscription. Your next billing date is on {formatted_next_billing_date}."
+    else:
+        subscription_message = "You do not have an active subscription."
+
+    credits_message = f"Your available credits: {num_credits}" if num_credits is not None else "Error retrieving credits information."
+
+    # Send message to user
+    message_content = f"{subscription_message}\n{credits_message}"
+    await query.edit_message_text(message_content)
+
+
 
 
 async def button(update: Update, context: ContextTypes) -> None:
@@ -159,7 +189,7 @@ async def button(update: Update, context: ContextTypes) -> None:
     user_id = str(update.effective_user.id)
 
     
-    if query.data.startswith('subscribe') or query.data in ['cancel_subscription']:
+    if query.data.startswith('subscribe') or query.data in ['cancel_subscription', 'check_account']:
         # Subscription handling logic
         if query.data == 'subscribe_monthly':
             price_id = 'price_1OnAcnBo1ZNr3GjAKryjcBaa'  # Replace with your Stripe price ID
@@ -169,6 +199,11 @@ async def button(update: Update, context: ContextTypes) -> None:
         elif query.data == 'cancel_subscription':
             # Call your function to handle subscription cancellation
             await handle_subscription_cancellation(update, context)
+            return
+        
+        elif query.data == 'check_account':
+            # Call your function to handle subscription cancellation
+            await balance_command(update, context)
             return
         
 
