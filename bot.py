@@ -17,7 +17,7 @@ import database
 import bubbledb
 import connectBubble
 import loginuser
-import paymentstest
+# import paymentstest
 import voicenoteHandler
 import imagesdb
 import math
@@ -674,7 +674,7 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE, vo
     if(current_minutes_credits <= 0):
         # Send message to buy credits
         await update.message.reply_text('''You are out of minutes for your account. Purchase more below in order to continue.''')
-        await paymentstest.purchase(update, context)
+        # await paymentstest.purchase(update, context)
     else:
         await voicenoteHandler.voice_note_creator(update, context, text)
 
@@ -824,8 +824,8 @@ def main():
     # dp.add_handler(CommandHandler("disable_voicenotes", disable_voice_notes_command))
     # dp.add_handler(CommandHandler("enable_voicenotes", enable_voice_notes_command))
     
-    dp.add_handler(CommandHandler("deposit", paymentstest.purchase))
-    dp.add_handler(CallbackQueryHandler(paymentstest.button))
+    # dp.add_handler(CommandHandler("deposit", paymentstest.purchase))
+    # dp.add_handler(CallbackQueryHandler(paymentstest.button))
 
     # Handle non-command messages
     # This is your main text message handler
