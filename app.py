@@ -66,7 +66,7 @@ def stripe_webhook():
 
             print("The telegram ID is: ", telegram_user_id)
                     
-            stripe_subscription_id = subscription.get('id')
+            stripe_subscription_id = session.get('subscription') 
             items = subscription.get('items', {}).get('data')
             if items and len(items) > 0:
                 subscription_plan = items[0].get('plan', {}).get('nickname', 'No plan nickname')
