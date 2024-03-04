@@ -22,13 +22,15 @@ import voicenoteHandler
 import imagesdb
 import math
 
+from CONSTANTS import TOKEN, BOT_USERNAME, AGENT_ID, INFLUENCER_UID, AI_NAME
 
-TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
-BOT_USERNAME: Final = "@veronicaavluvaibot"
 
-AI_NAME = "VeronicaAI"
+# TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
+# BOT_USERNAME: Final = "@veronicaavluvaibot"
 
-AGENT_ID = "veronica_avluv"
+# AI_NAME = "VeronicaAI"
+
+# AGENT_ID = "veronica_avluv"
 
 bot = Bot(TOKEN)
 
@@ -500,6 +502,12 @@ To add credits to your account or subscribe, use /deposit'''
 
 
 
+async def feedback_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text(f'''Submit any feedback you have for InfluencerAI here:
+https://forms.gle/ZvB4vXse3SZKfqHA6
+
+You're feedback helps us improve your experience and add features you want to see.''')
+
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 #     await update.message.reply_text(f'''You can edit any of your account info using the follwowing commands:
@@ -507,12 +515,14 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 # Change your account's phone number -  /changephone
                                     
 # If you're facing any other issues, contact admin@tryinfluencer.ai''')
-
+    
     await update.message.reply_text(f'''If you want me to call you, use /callme
 To see your balance use /balance
 To buy more credits or subscribe, use /deposit
 
 If you're facing any issues, contact admin@tryinfluencer.ai''')
+
+
 
 # async def update_voice_notes_commands(user_id, voice_notes_status):
 #     global_commands = get_global_commands()
@@ -814,6 +824,7 @@ def main():
     dp.add_handler(MessageHandler(filters.VOICE, handle_user_voice_note))
 
     dp.add_handler(CommandHandler("help", help_command))
+    dp.add_handler(CommandHandler("help", feedback_command))
     dp.add_handler(CommandHandler("callme", callme_command))
     dp.add_handler(CommandHandler("balance", balance_command))
 

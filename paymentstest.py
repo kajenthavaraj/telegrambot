@@ -7,8 +7,8 @@ import asyncio
 import time
 import requests
 import json
-import stripe 
-import CONSTANTS
+import stripe
+from CONSTANTS import TOKEN, BOT_USERNAME, AGENT_ID, INFLUENCER_UID, AI_NAME
 from database import get_bubble_unique_id
 from connectBubble import get_user_subscription, check_user_subscription, update_subscription, check_user_subscription_more_detail
 import connectBubble
@@ -18,9 +18,6 @@ import openai
 
 # stripe.api_key = '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'
 stripe.api_key = 'sk_test_51IsqDJBo1ZNr3GjAvWVMXtJUnocMO3LsOBaZKJIwtKcAd6regW0OrOgLGrjldgvMmS3K6PW3q4rkTDIbWb3VCUm00072rgmWbe'
-
-TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
-BOTUSERNAME: Final = '@veronicaavluvaibot'
 
 
 
@@ -65,8 +62,8 @@ async def purchase(update: Update, context: ContextTypes) -> None:
     await update.message.reply_text('Please choose the duration you’d like to purchase:', reply_markup=reply_markup)
 
 async def subscribe(update: Update, context: ContextTypes) -> None:
-    influencer_id = CONSTANTS.BOT_USERNAME 
-    influencer_UID = CONSTANTS.INFLUENCER_UID
+    influencer_id = BOT_USERNAME 
+    influencer_UID = INFLUENCER_UID
     user_id = str(update.effective_user.id)
 
 
@@ -96,8 +93,8 @@ async def subscribe(update: Update, context: ContextTypes) -> None:
 
 async def manage_subscription(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
-    influencer_id = CONSTANTS.BOT_USERNAME 
-    influencer_UID = CONSTANTS.INFLUENCER_UID
+    influencer_id = BOT_USERNAME 
+    influencer_UID = INFLUENCER_UID
     user_id = str(update.effective_user.id)
 
 
@@ -125,8 +122,8 @@ async def manage_subscription(update: Update, context: CallbackContext) -> None:
 async def handle_subscription_cancellation(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     user_id = str(update.effective_user.id)
-    influencer_id = CONSTANTS.BOT_USERNAME
-    influencer_UID = CONSTANTS.INFLUENCER_UID
+    influencer_id = BOT_USERNAME
+    influencer_UID = INFLUENCER_UID
 
     bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
 
@@ -155,8 +152,8 @@ async def handle_subscription_cancellation(update: Update, context: CallbackCont
 async def balance_command(update: Update, context: ContextTypes) -> None:
     query = update.callback_query
     user_id = str(update.effective_user.id)
-    influencer_id = CONSTANTS.BOT_USERNAME
-    influencer_UID = CONSTANTS.INFLUENCER_UID
+    influencer_id = BOT_USERNAME
+    influencer_UID = INFLUENCER_UID
 
     bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
 
