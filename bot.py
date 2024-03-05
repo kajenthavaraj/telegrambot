@@ -8,8 +8,6 @@ import json
 import re
 import asyncio
 
-from openai import OpenAI
-
 import response_engine
 import vectordb
 
@@ -214,9 +212,9 @@ async def verify_number(update: Update, context: ContextTypes.DEFAULT_TYPE, phon
 
 #### Helper functions ####
 def gpt_verify_and_format_number(phone_number:str): # -> List[bool, str]:
-    phone_verify_prompt = '''You're job is to verify and format if a phone number is correct.
+    phone_verify_prompt = '''Your job is to verify and format if a phone number is correct.
 A phone number should follow the conventional code such where it's the country code followed by the area code and rest of the number.
-For example this is an example of a correct number: 16477667841
+For example this is an example of a correct number: +16477667841
 And this is an example of a wrong number: 164776678
 
 If number is valid but is in the wrong format, reformat it and return it back. If a number is not valid, then return back INVALID. Do not include "OUTPUT" in your actual message.
@@ -228,7 +226,7 @@ Input: 6477667841
 Output: MISSING COUNTRY CODE
 
 Input:+1-416-933-2213
-Output: 14169332213'''
+Output: +14169332213'''
 
     phone_input_prompt = f'''Phone number: {phone_number}
 OUTPUT: '''
