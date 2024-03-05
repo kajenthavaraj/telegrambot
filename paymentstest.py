@@ -214,6 +214,8 @@ async def button(update: Update, context: ContextTypes) -> None:
             mode='subscription',
             success_url='https://t.me/veronicaavluvaibot?start=subscription_successful',
             cancel_url='https://t.me/veronicaavluvaibot?start=subscription_canceled',
+            # success_url='https://t.me/veronicaavluvaibot?start=subscription_successful',
+            # cancel_url='https://t.me/veronicaavluvaibot?start=subscription_canceled',
             metadata={'telegram_user_id': user_id},  # Pass in metadata to identify the user
         )
 

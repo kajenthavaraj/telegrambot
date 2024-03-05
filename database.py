@@ -8,7 +8,7 @@ import time
 import bubbledb
 import connectBubble
 
-import CONSTANTS
+from CONSTANTS import TOKEN, BOT_USERNAME, AGENT_ID, INFLUENCER_UID, AI_NAME
 
 
 def init_database():
@@ -262,7 +262,7 @@ def get_bubble_unique_id(influencer_id, user_id):
 
 def add_subscription_id(influencer_id, user_id, bubble_user_uid):
     # Create subscription_id
-    subscription_id = connectBubble.add_subscription(bubble_user_uid, user_id, CONSTANTS.IUFLUENCER_UID)
+    subscription_id = connectBubble.add_subscription(bubble_user_uid, user_id, INFLUENCER_UID)
 
     # Add to Firebase
     db = init_database()
