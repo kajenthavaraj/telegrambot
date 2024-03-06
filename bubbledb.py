@@ -3,11 +3,9 @@ import json
 # Returns Json File of Data for the Data Entry with the Uniuqe ID
 api_key = "7bfc4e7b2cfbd0475b1ec923a0ea4c99"
 
-INFLUENCER_ID_TO_BUBBLE_ID = {
+from CONSTANTS import TOKEN, BOT_USERNAME, AGENT_ID, INFLUENCER_UID, AI_NAME
 
-    "veronica_avluv" : "1703701959468x374948791862866400"
 
-}
 
 DATA_URL = "https://app.tryinfluencerai.com/api/1.1/obj/"
 
