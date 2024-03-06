@@ -22,13 +22,15 @@ import voicenoteHandler
 import imagesdb
 import math
 
+from CONSTANTS import TOKEN, BOT_USERNAME, AGENT_ID, INFLUENCER_UID, AI_NAME, CREDITS_PER_MINUTE
 
-TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
-BOT_USERNAME: Final = "@veronicaavluvaibot"
 
-AI_NAME = "VeronicaAI"
+# TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
+# BOT_USERNAME: Final = "@veronicaavluvaibot"
 
-AGENT_ID = "veronica_avluv"
+# AI_NAME = "VeronicaAI"
+
+# AGENT_ID = "veronica_avluv"
 
 bot = Bot(TOKEN)
 
@@ -75,6 +77,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     influencer_id = BOT_USERNAME
 
     context.user_data['voice_notes_status'] = "enabled"
+
+    start_args = context.args  # context.args contains the parameters passed after /start
 
     ############### Check if user already exists ###############
     user_exists_status = database.check_user_exists(BOT_USERNAME, user_id)
@@ -321,8 +325,6 @@ Please try again using the '📞 Share Phone Number' button below.'''
 
 
 
-
-
 def get_user_unique_id(update, context):
     if 'user_unique_id' in context.user_data and context.user_data['user_unique_id']:
         return context.user_data['user_unique_id']
@@ -448,7 +450,6 @@ Enter /help if you run into any issues.""")
 
 # Commands
 
-
 async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = str(update.message.from_user.id)
 
@@ -456,14 +457,21 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     unique_id = get_user_unique_id(update, context)
     print(unique_id)
     num_credits = connectBubble.get_minutes_credits(unique_id)
-
     num_credits = str(round(num_credits, 2))
-
+    
 
     # Get user's phone number
     status, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
 
-    if(status == False):
+    if(context.user_data is None or ('current_stage' not in context.user_data)):
+        pass
+        print("ERROR: RUN CHECK CURRENT STAGE FUNCTION")
+
+        if(unique_id != False or unique_id != 'False'):
+            acountinfo_message = f'''You have *{num_credits} InfluencerAI credits* available
+
+To add credits to your account or subscribe, use /deposit'''
+    elif(context.user_data['current_stage'] != 'response_engine' and status == False):
         acountinfo_message = f'''You don't have a phone number connected to your account yet. Please finsh signing up in order to access your account info.'''
     else:
         acountinfo_message = f'''You have *{num_credits} InfluencerAI credits* available
@@ -500,6 +508,12 @@ To add credits to your account or subscribe, use /deposit'''
 
 
 
+async def feedback_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text(f'''Submit any feedback you have for InfluencerAI here:
+https://forms.gle/ZvB4vXse3SZKfqHA6
+
+You're feedback helps us improve your experience and add features you want to see.''')
+
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 #     await update.message.reply_text(f'''You can edit any of your account info using the follwowing commands:
@@ -507,12 +521,14 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 # Change your account's phone number -  /changephone
                                     
 # If you're facing any other issues, contact admin@tryinfluencer.ai''')
-
+    
     await update.message.reply_text(f'''If you want me to call you, use /callme
 To see your balance use /balance
 To buy more credits or subscribe, use /deposit
 
 If you're facing any issues, contact admin@tryinfluencer.ai''')
+
+
 
 # async def update_voice_notes_commands(user_id, voice_notes_status):
 #     global_commands = get_global_commands()
@@ -545,13 +561,31 @@ async def callme_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     user_id = str(update.message.from_user.id)
 
     has_phone, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
-    user_first_name = update.message.from_user.first_name
 
-    user_unique_id = get_user_unique_id(update, context) #database.get_bubble_unique_id(BOT_USERNAME, user_id)
+    user_unique_id = get_user_unique_id(update, context)
 
     if(has_phone == True):
-        place_call(phone_number, user_first_name, )
-        await update.message.reply_text("i'm calling you, check your phone")
+        user_first_name = update.message.from_user.first_name
+        prospect_email = connectBubble.get_user_email(user_unique_id)
+        credits_left = connectBubble.get_minutes_credits(user_unique_id)
+        subscription_id = database.get_subscription_id(BOT_USERNAME, user_id)
+        
+        # IMPLEMENT LATER: fan description left blank
+        fan_description = ""
+
+        await update.message.reply_text("i'm calling you, check your phone") 
+
+        place_status = place_call(phone_number, user_first_name, prospect_email, user_unique_id, credits_left, CREDITS_PER_MINUTE,
+                                  subscription_id, fan_description)
+
+        print("place_status: ", place_status)
+
+        if(place_status):
+            print("Placed call")
+        else:
+            # ERROR - add handling later
+            database.add_chat_to_user_history(BOT_USERNAME, user_id, 'assistant', 'Influencer: ' + "i'm having some trouble calling you right now, can you try again later?")
+            await update.message.reply_text("i'm having some trouble calling you right now, can you try again later?")
     else:
         await update.message.reply_text("you need to connect your phone number in order for me to be able to call you")
 
@@ -621,10 +655,10 @@ def place_call(phone_number, prospect_name, prospect_email, unique_id, credits_l
 
     response = requests.post(url, headers=headers, data=json.dumps(data))
     if response.status_code == 200:
-        print(response.json())  # Assuming the successful response is a JSON
+        # print(response.json())  # Assuming the successful response is a JSON
         return True
     else:
-        print("Error: ", response.text)
+        # print("Error: ", response.text)
         return False
 
 
@@ -714,6 +748,7 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE, vo
     # else:
     #     # Call voice notes handler
     #     await voicenoteHandler.voice_note_creator(update, context, text)
+
 
 
 '''
@@ -814,6 +849,7 @@ def main():
     dp.add_handler(MessageHandler(filters.VOICE, handle_user_voice_note))
 
     dp.add_handler(CommandHandler("help", help_command))
+    dp.add_handler(CommandHandler("help", feedback_command))
     dp.add_handler(CommandHandler("callme", callme_command))
     dp.add_handler(CommandHandler("balance", balance_command))
 
