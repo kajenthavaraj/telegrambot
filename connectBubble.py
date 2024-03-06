@@ -192,6 +192,8 @@ def add_subscription(user_uid, telegram_user_id, influencer_uid):
     # Return the subscription_id
     return sub_id
 
+
+# ADD CODE HERE FOR APPENDING SUBSCRIPTION
 def update_subscription(user_uid, telegram_user_id, influencer_uid, subscription_ID, subscription_plan, status, last_billing_date, next_billing_date):
     print("Attempting to update subscription entry in Bubble...")
 

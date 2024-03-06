@@ -116,6 +116,8 @@ def stripe_webhook():
                     subscription_plan, status, last_billing_date, next_billing_date
                 )
 
+                # ADD SOME CODE HERE FOR APPENDING THE PAYMENT DETAILS
+
                 if success:
                     print(f"Subscription {stripe_subscription_id} added successfully")
                     message = f"Your subscription has been activated! Next billing date: {next_billing_date}."
@@ -133,6 +135,8 @@ def stripe_webhook():
 
                 # Now you can update the credits in Bubble using this unique ID
                 update_minutes_credits(bubble_unique_id, credits_purchased)
+
+                # ADD SOME CODE HERE FOR APPENDING PAYMENT HISTORY TO USER AFTER INVOICE PAID
 
                 message = f"Thank you for your purchase! You have successfully bought {credits_purchased} credits for {amount_paid} {currency}."
 
