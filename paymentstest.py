@@ -137,7 +137,7 @@ async def handle_subscription_cancellation(update: Update, context: CallbackCont
             # Cancel the subscription with Stripe
             stripe.Subscription.delete(stripe_subscription_id)
             # Assuming update_subscription can also update the status to 'cancelled'
-            successful_update = update_subscription(user_uid=bubble_unique_id, telegram_user_id=user_id, influencer_uid=influencer_UID, subscription_ID=stripe_subscription_id, subscription_plan=None, status="cancelled", last_billing_date=None, next_billing_date=None)
+            successful_update = update_subscription(user_uid=bubble_unique_id, telegram_user_id=user_id, influencer_uid=influencer_UID, subscription_ID=stripe_subscription_id, subscription_plan=None, status="cancelled", last_billing_date=None, next_billing_date=None, amount_paid=None)
             if successful_update:
                 await query.edit_message_text("Your subscription has been successfully cancelled.")
             else:
