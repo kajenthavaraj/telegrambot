@@ -72,10 +72,14 @@ def stripe_webhook():
 
             amount_paid = format(session.get('amount_total') / 100, '.2f')
             items = subscription.get('items', {}).get('data')
-            if items and len(items) > 0:
-                subscription_plan = items[0].get('plan', {}).get('nickname', 'No plan nickname')
+
+            if amount_paid == '24.99':
+                subscription_plan = 'Monthly'
+            elif amount_paid == '249':
+                subscription_plan = 'Yearly'
             else:
-                subscription_plan = 'No plan nickname'  # Fallback value or handle error
+                subscription_plan = 'Unknown Plan'
+
             status = subscription.get('status')
 
 
