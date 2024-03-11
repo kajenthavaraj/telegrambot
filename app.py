@@ -71,7 +71,8 @@ def stripe_webhook():
             stripe_subscription_id = session.get('subscription') 
 
             amount_paid = format(session.get('amount_total') / 100, '.2f')
-            items = subscription.get('items', {}).get('data')
+            
+            print("The amount paid is: ", amount_paid)
 
             if amount_paid == '24.99':
                 subscription_plan = 'Monthly'
