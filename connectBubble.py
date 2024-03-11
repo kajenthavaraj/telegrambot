@@ -445,22 +445,45 @@ def get_chat_credits(unique_id):
         return None
 
 
-def update_minutes_credits(unique_id, num_minutes):
+def update_minutes_credits(unique_id, num_minutes, amount_paid, charge_id, influencer_attribution, paid_status):
     data_type = "User"  
     field_name = "credits"
 
+    # First, update the user's credits
     current_credits = get_minutes_credits(unique_id)
+    data_for_credits_update = {field_name: current_credits + num_minutes}
+    response_credits_update = bubbledb.update_data_fields(unique_id, data_type, data_for_credits_update)
 
-    # Prepare the data for updating the user's first name
-    data = {field_name: current_credits + num_minutes}
+    if response_credits_update != 204:
+        print("Failed to update user's minutes credits.")
+        return False
 
-    # Use the update_data_fields function to update the user's first name
-    response = bubbledb.update_data_fields(unique_id, data_type, data)
+    # Append purchase history
+    purchase_history_data = {
+        "amount": amount_paid,
+        "charge_id": charge_id,
+        "influencer_attribution": influencer_attribution,
+        "minutes": num_minutes,
+        "paid_status": paid_status,
+        "user": unique_id  
+    }
 
-    if response == 204:
-        print("User's minutes credits updated successfully.")
+    new_purchase_history_id = bubbledb.add_entry("purchase_usages", purchase_history_data)
+
+    if new_purchase_history_id == -1:
+        print("Failed to create a new purchase history entry.")
+        return False
+
+    # Finally, append the new purchase history ID to the user's purchase_history field
+    append_response = bubbledb.add_to_database_list(unique_id, data_type, "purchase_history", [new_purchase_history_id])
+
+    if append_response == 204:
+        print("Purchase history updated successfully.")
+        return True
     else:
-        print(f"Failed to update user's minutes credits. Response: {response}")
+        print("Failed to update purchase history.")
+        return False
+
 
 
 def update_chat_credits(unique_id, num_credits):

@@ -133,14 +133,21 @@ def stripe_webhook():
                 amount_paid = format(session.get('amount_total') / 100, '.2f')
                 currency = session.get('currency').upper()
 
+                charge_id = session.get('id')  # Assuming the charge ID is stored in the session object
+                print("The charge id is: ", charge_id)
+                influencer_attribution = influencer_UID
+                paid_status = "Paid" 
+
                 # Now you can update the credits in Bubble using this unique ID
-                update_minutes_credits(bubble_unique_id, credits_purchased)
+                success = update_minutes_credits(bubble_unique_id, credits_purchased, amount_paid, charge_id, influencer_attribution, paid_status)
 
-                # ADD SOME CODE HERE FOR APPENDING PAYMENT HISTORY TO USER AFTER INVOICE PAID
-
-                message = f"Thank you for your purchase! You have successfully bought {credits_purchased} credits for {amount_paid} {currency}."
-
+                if success:
+                    message = f"Thank you for your purchase! You have successfully bought {credits_purchased} credits for {amount_paid} {currency}."
+                else:
+                    message = "There was an issue processing your purchase. Please contact support."
+                
                 send_telegram_message(telegram_user_id, message)
+
             else:
                 logging.warning("Missing metadata or Bubble unique ID")
                 if telegram_user_id:
