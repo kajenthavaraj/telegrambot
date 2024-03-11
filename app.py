@@ -49,7 +49,7 @@ def stripe_webhook():
         telegram_user_id = metadata.get('telegram_user_id')
         influencer_id = CONSTANTS.BOT_USERNAME
         influencer_UID = CONSTANTS.INFLUENCER_UID 
-        bubble_unique_id = get_bubble_unique_id(influencer_UID, telegram_user_id)
+        bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
         print("the influencer id is: ", influencer_id)
         print ("the bubble unique id is: ", bubble_unique_id, "the telegram user id is: ", telegram_user_id)
         #bubble_unique_id = '1705089991492x506710590267403400'
