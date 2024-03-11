@@ -468,7 +468,7 @@ def update_minutes_credits(unique_id, num_minutes, amount_paid, charge_id, influ
         "user": unique_id  
     }
 
-    new_purchase_history_id = bubbledb.add_entry("purchase_usages", purchase_history_data)
+    new_purchase_history_id = bubbledb.add_entry("purchase_usage", purchase_history_data)
 
     if new_purchase_history_id == -1:
         print("Failed to create a new purchase history entry.")
