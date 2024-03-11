@@ -69,6 +69,8 @@ def stripe_webhook():
             print("The telegram ID is: ", telegram_user_id)
                     
             stripe_subscription_id = session.get('subscription') 
+
+            amount_paid = format(session.get('amount_total') / 100, '.2f')
             items = subscription.get('items', {}).get('data')
             if items and len(items) > 0:
                 subscription_plan = items[0].get('plan', {}).get('nickname', 'No plan nickname')
@@ -115,7 +117,7 @@ def stripe_webhook():
                 print("Influencer: ", influencer_UID, " bubble unique id: ", bubble_unique_id)
                 success = update_subscription(
                     bubble_unique_id, telegram_user_id, influencer_UID, stripe_subscription_id,
-                    subscription_plan, status, last_billing_date, next_billing_date
+                    subscription_plan, status, last_billing_date, next_billing_date, amount_paid
                 )
 
                 # ADD SOME CODE HERE FOR APPENDING THE PAYMENT DETAILS
