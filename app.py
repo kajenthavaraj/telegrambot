@@ -76,7 +76,7 @@ def stripe_webhook():
 
             if amount_paid == '24.99':
                 subscription_plan = 'Monthly'
-            elif amount_paid == '249':
+            elif amount_paid == '249.00':
                 subscription_plan = 'Yearly'
             else:
                 subscription_plan = 'Unknown Plan'
