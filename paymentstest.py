@@ -121,6 +121,18 @@ async def manage_subscription(update: Update, context: CallbackContext) -> None:
 
 async def handle_subscription_cancellation(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
+    # Prepare the confirmation message with InlineKeyboardMarkup
+    keyboard = [
+        [InlineKeyboardButton("Yes, cancel my subscription", callback_data='confirm_cancel_subscription')],
+        [InlineKeyboardButton("No, keep my subscription", callback_data='keep_subscription')]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text("Are you sure you want to cancel your subscription?", reply_markup=reply_markup)
+    
+    
+
+async def confirm_subscription_cancellation(update: Update, context: CallbackContext) -> None:
+    query = update.callback_query
     user_id = str(update.effective_user.id)
     influencer_id = BOT_USERNAME
     influencer_UID = INFLUENCER_UID
@@ -137,7 +149,7 @@ async def handle_subscription_cancellation(update: Update, context: CallbackCont
             # Cancel the subscription with Stripe
             stripe.Subscription.delete(stripe_subscription_id)
             # Assuming update_subscription can also update the status to 'cancelled'
-            successful_update = update_subscription(user_uid=bubble_unique_id, telegram_user_id=user_id, influencer_uid=influencer_UID, subscription_ID=stripe_subscription_id, subscription_plan=None, status="cancelled", last_billing_date=None, next_billing_date=None)
+            successful_update = update_subscription(user_uid=bubble_unique_id, telegram_user_id=user_id, influencer_uid=influencer_UID, subscription_ID=stripe_subscription_id, subscription_plan=None, status="cancelled", last_billing_date=None, next_billing_date=None, amount_paid=None)
             if successful_update:
                 await query.edit_message_text("Your subscription has been successfully cancelled.")
             else:
@@ -185,24 +197,12 @@ async def button(update: Update, context: ContextTypes) -> None:
     await query.answer()
     user_id = str(update.effective_user.id)
 
-    
-    if query.data.startswith('subscribe') or query.data in ['cancel_subscription', 'check_account']:
+    if query.data.startswith('subscribe'):
         # Subscription handling logic
         if query.data == 'subscribe_monthly':
-            price_id = 'price_1OnAcnBo1ZNr3GjAKryjcBaa'  # Replace with your Stripe price ID
+            price_id = 'price_1OnAcnBo1ZNr3GjAKryjcBaa'  
         elif query.data == 'subscribe_yearly':
-            price_id = 'price_1OnAe8Bo1ZNr3GjAvMXybMlU'  # Replace with your Stripe price ID
-
-        elif query.data == 'cancel_subscription':
-            # Call your function to handle subscription cancellation
-            await handle_subscription_cancellation(update, context)
-            return
-        
-        elif query.data == 'check_account':
-            # Call your function to handle subscription cancellation
-            await balance_command(update, context)
-            return
-        
+            price_id = 'price_1OnAe8Bo1ZNr3GjAvMXybMlU' 
 
         # Create a Stripe Checkout Session for subscription
         checkout_session = stripe.checkout.Session.create(
@@ -222,6 +222,19 @@ async def button(update: Update, context: ContextTypes) -> None:
         keyboard = [[InlineKeyboardButton("Complete Subscription", url=checkout_session.url)]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await context.bot.send_message(chat_id=query.message.chat_id, text="Please complete your subscription:", reply_markup=reply_markup)
+
+    elif query.data == 'cancel_subscription':
+        await handle_subscription_cancellation(update, context)
+    
+    elif query.data == 'confirm_cancel_subscription':
+        await confirm_subscription_cancellation(update, context)
+
+    elif query.data == 'keep_subscription':
+        await query.edit_message_text("Your subscription remains active. Thank you for staying with us.")
+
+    elif query.data == 'check_account':
+        await balance_command(update, context)
+    
     else:
         # One-off payment handling logic
         duration_minutes = int(query.data)  # This is based on the callback_data set in the InlineKeyboardButton

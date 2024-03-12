@@ -192,7 +192,9 @@ def add_subscription(user_uid, telegram_user_id, influencer_uid):
     # Return the subscription_id
     return sub_id
 
-def update_subscription(user_uid, telegram_user_id, influencer_uid, subscription_ID, subscription_plan, status, last_billing_date, next_billing_date):
+
+# ADD CODE HERE FOR APPENDING SUBSCRIPTION
+def update_subscription(user_uid, telegram_user_id, influencer_uid, subscription_ID, subscription_plan, status, last_billing_date, next_billing_date, amount_paid):
     print("Attempting to update subscription entry in Bubble...")
 
     # Attempt to find the existing subscription for the specific influencer
@@ -214,20 +216,44 @@ def update_subscription(user_uid, telegram_user_id, influencer_uid, subscription
         response = True
         for field, value in updated_data.items():
             update_response = bubbledb.update_database(existing_sub_id, "Subscription", field, value)
+            
             if update_response != 204:
                 response = False
                 print(f"Failed to update {field} in Bubble.")
                 break  # Stop updating if any field update fails
 
-        if response:
-            print("Subscription updated successfully.")
-            return True
-        else:
+        if not response:
             print("Failed to update subscription in Bubble.")
             return False
-    else:
-        print("No existing subscription found for this influencer. Ensure the influencer ID is correct and an entry exists.")
+        
+    # Prepare the data for new subscription history entry
+    subscription_history_data = {
+        "influencer": influencer_uid,
+        "last_billing_date": last_billing_date,
+        "next_billing_date": next_billing_date,
+        "purchase_amount": amount_paid,  
+        "status": status,
+        "subscription_plan": subscription_plan,
+        "subscription_stripe_id": subscription_ID,
+        "telegram_user_id": telegram_user_id,
+        "user": user_uid,
+    }
+
+    # Create new subscription history entry
+    new_history_id = bubbledb.add_entry("purchase_subscription", subscription_history_data)
+    if new_history_id == -1:
+        print("Failed to create a new subscription history entry.")
         return False
+
+    # Append the new subscription history ID to the user's subscription_history field
+    append_response = bubbledb.add_to_database_list(user_uid, "User", "subscription_history", [new_history_id])
+    if append_response == 204:
+        print("Subscription history updated successfully.")
+        return True
+    else:
+        print("Failed to update subscription history.")
+        return False
+    
 
 
 def check_user_subscription(bubble_unique_id, influencer_uid):
@@ -443,22 +469,45 @@ def get_chat_credits(unique_id):
         return None
 
 
-def update_minutes_credits(unique_id, num_minutes):
+def update_minutes_credits(unique_id, num_minutes, amount_paid, charge_id, influencer_attribution, paid_status):
     data_type = "User"  
     field_name = "credits"
 
+    # First, update the user's credits
     current_credits = get_minutes_credits(unique_id)
+    data_for_credits_update = {field_name: current_credits + num_minutes}
+    response_credits_update = bubbledb.update_data_fields(unique_id, data_type, data_for_credits_update)
 
-    # Prepare the data for updating the user's first name
-    data = {field_name: current_credits + num_minutes}
+    if response_credits_update != 204:
+        print("Failed to update user's minutes credits.")
+        return False
 
-    # Use the update_data_fields function to update the user's first name
-    response = bubbledb.update_data_fields(unique_id, data_type, data)
+    # Append purchase history
+    purchase_history_data = {
+        "amount": amount_paid,
+        "charge_id": charge_id,
+        "influencer_attribution": influencer_attribution,
+        "minutes": num_minutes,
+        "paid_status": paid_status,
+        "user": unique_id  
+    }
 
-    if response == 204:
-        print("User's minutes credits updated successfully.")
+    new_purchase_history_id = bubbledb.add_entry("purchase_usage", purchase_history_data)
+
+    if new_purchase_history_id == -1:
+        print("Failed to create a new purchase history entry.")
+        return False
+
+    # Finally, append the new purchase history ID to the user's purchase_history field
+    append_response = bubbledb.add_to_database_list(unique_id, data_type, "purchase_history", [new_purchase_history_id])
+
+    if append_response == 204:
+        print("Purchase history updated successfully.")
+        return True
     else:
-        print(f"Failed to update user's minutes credits. Response: {response}")
+        print("Failed to update purchase history.")
+        return False
+
 
 
 def update_chat_credits(unique_id, num_credits):
