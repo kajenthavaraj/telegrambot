@@ -50,6 +50,8 @@ def stripe_webhook():
         influencer_id = CONSTANTS.BOT_USERNAME
         influencer_UID = CONSTANTS.INFLUENCER_UID 
         bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
+        print("the influencer id is: ", influencer_id)
+        print ("the bubble unique id is: ", bubble_unique_id, "the telegram user id is: ", telegram_user_id)
         #bubble_unique_id = '1705089991492x506710590267403400'
 
         if not bubble_unique_id:
@@ -67,11 +69,18 @@ def stripe_webhook():
             print("The telegram ID is: ", telegram_user_id)
                     
             stripe_subscription_id = session.get('subscription') 
-            items = subscription.get('items', {}).get('data')
-            if items and len(items) > 0:
-                subscription_plan = items[0].get('plan', {}).get('nickname', 'No plan nickname')
+
+            amount_paid = format(session.get('amount_total') / 100, '.2f')
+            
+            print("The amount paid is: ", amount_paid)
+
+            if amount_paid == '24.99':
+                subscription_plan = 'Monthly'
+            elif amount_paid == '249.00':
+                subscription_plan = 'Yearly'
             else:
-                subscription_plan = 'No plan nickname'  # Fallback value or handle error
+                subscription_plan = 'Unknown Plan'
+
             status = subscription.get('status')
 
 
@@ -113,8 +122,10 @@ def stripe_webhook():
                 print("Influencer: ", influencer_UID, " bubble unique id: ", bubble_unique_id)
                 success = update_subscription(
                     bubble_unique_id, telegram_user_id, influencer_UID, stripe_subscription_id,
-                    subscription_plan, status, last_billing_date, next_billing_date
+                    subscription_plan, status, last_billing_date, next_billing_date, amount_paid
                 )
+
+                # ADD SOME CODE HERE FOR APPENDING THE PAYMENT DETAILS
 
                 if success:
                     print(f"Subscription {stripe_subscription_id} added successfully")
@@ -131,12 +142,21 @@ def stripe_webhook():
                 amount_paid = format(session.get('amount_total') / 100, '.2f')
                 currency = session.get('currency').upper()
 
+                charge_id = session.get('id')  # Assuming the charge ID is stored in the session object
+                print("The charge id is: ", charge_id)
+                influencer_attribution = influencer_UID
+                paid_status = "Paid" 
+
                 # Now you can update the credits in Bubble using this unique ID
-                update_minutes_credits(bubble_unique_id, credits_purchased)
+                success = update_minutes_credits(bubble_unique_id, credits_purchased, amount_paid, charge_id, influencer_attribution, paid_status)
 
-                message = f"Thank you for your purchase! You have successfully bought {credits_purchased} credits for {amount_paid} {currency}."
-
+                if success:
+                    message = f"Thank you for your purchase! You have successfully bought {credits_purchased} credits for {amount_paid} {currency}."
+                else:
+                    message = "There was an issue processing your purchase. Please contact support."
+                
                 send_telegram_message(telegram_user_id, message)
+
             else:
                 logging.warning("Missing metadata or Bubble unique ID")
                 if telegram_user_id:
