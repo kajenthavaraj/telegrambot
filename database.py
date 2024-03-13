@@ -10,16 +10,13 @@ import connectBubble
 
 from CONSTANTS import TOKEN, BOT_USERNAME, AGENT_ID, INFLUENCER_UID, AI_NAME
 
+# Check if the default Firebase app has already been initialized
+if not firebase_admin._apps:
+    KEYPATH = 'telegrambot-d6553-firebase-adminsdk-ruf4v-91d571bca9.json'
+    cred = credentials.Certificate(KEYPATH)
+    firebase_admin.initialize_app(cred)
 
-def init_database():
-    # Check if the default Firebase app has already been initialized
-    if not firebase_admin._apps:
-        KEYPATH = 'telegrambot-d6553-firebase-adminsdk-ruf4v-91d571bca9.json'
-        cred = credentials.Certificate(KEYPATH)
-        firebase_admin.initialize_app(cred)
-    
-    db = firestore.client()
-    return db
+db = firestore.client()
 
 
 # Function to  create a new influencer collection
@@ -28,7 +25,6 @@ def create_influencer_collection(influencer_id, influencer_name):
         'name': influencer_name,
     }
 
-    db = init_database()
     
     db.collection('influencers').document(influencer_id).set(influencer_data)
     # print(f"Influencer {influencer_name} with ID {influencer_id} has been added to the database.")
@@ -38,7 +34,6 @@ def create_influencer_collection(influencer_id, influencer_name):
 
 
 def check_user_exists(influencer_id, user_id):
-    db = init_database()  # Initialize the database connection
     # Create a reference to the influencer's subscription collection and the specific user document
     user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
 
@@ -54,7 +49,6 @@ def check_user_exists(influencer_id, user_id):
 
 # Function to add user to an influencers subscriptions
 def add_user_to_influencer_subscription(influencer_id, user_id):
-    db = init_database()
     # Create a reference to the influencer's subscription collection
     subscriptions_ref = db.collection('influencers').document(influencer_id).collection('subscriptions')
 
@@ -79,7 +73,6 @@ def add_user_to_influencer_subscription(influencer_id, user_id):
 
 # Function to add to chat history
 def add_chat_to_user_history(influencer_id, user_id, role, content):
-    db = init_database()
     # Reference to the specific subscription document of the user under the influencer
     user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
 
@@ -106,7 +99,6 @@ def add_chat_to_user_history(influencer_id, user_id, role, content):
 
 
 def get_user_chat_history(influencer_id, user_id):
-    db = init_database()
     # Reference to the specific subscription document of the user under the influencer
     user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
 
@@ -135,12 +127,21 @@ def get_user_chat_history(influencer_id, user_id):
 
 
 def store_user_phone_number(influencer_id, user_id, phone_number):
-    db = init_database()
     subscriptions_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
     
     # Update the document with the user's phone number, creating the document if it does not exist
     subscriptions_ref.set({'phone_number': phone_number}, merge=True)
     # print(f"Stored phone number {phone_number} for user {user_id} under influencer {influencer_id}.")
+
+def set_user_intro_status(influencer_id, user_id, status):
+    subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
+    subscription_ref.update({"intro_status" : status})
+
+def get_user_intro_status(influencer_id, user_id):
+    subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
+    doc = subscription_ref.get()
+    return doc.to_dict().get("intro_status")
+
 
 # Example usage
 # store_user_phone_number('veronicaavluvaibot', 'user12345', '6477667841')
@@ -148,8 +149,7 @@ def store_user_phone_number(influencer_id, user_id, phone_number):
 
 
 def phone_number_status(influencer_id, user_id):
-    db = init_database()
-    
+
     # Reference to the user's subscription document
     user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
     
@@ -175,7 +175,6 @@ def phone_number_status(influencer_id, user_id):
     
 
 def update_verification_status(influencer_id, user_id, status):
-    db = init_database()
     # Reference to the user's subscription document
     user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
     
@@ -191,7 +190,6 @@ def update_verification_status(influencer_id, user_id, status):
 
 
 def get_verification_status(influencer_id, user_id):
-    db = init_database()
     # Reference to the user's subscription document
     user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
     
@@ -219,8 +217,7 @@ def get_verification_status(influencer_id, user_id):
 
 
 def add_bubble_unique_id(influencer_id, user_id, unique_id):
-    db = init_database()
-    # Reference to the specific subscription document of the user under the influencer
+        # Reference to the specific subscription document of the user under the influencer
     user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
     
     # Update the document with the new bubble_user_unique_id field
@@ -235,7 +232,6 @@ def add_bubble_unique_id(influencer_id, user_id, unique_id):
 
 
 def get_bubble_unique_id(influencer_id, user_id):
-    db = init_database()
     # Reference to the specific subscription document of the user under the influencer
     user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
 
@@ -265,7 +261,6 @@ def add_subscription_id(influencer_id, user_id, bubble_user_uid):
     subscription_id = connectBubble.add_subscription(bubble_user_uid, user_id, INFLUENCER_UID)
 
     # Add to Firebase
-    db = init_database()
     # Reference to the specific subscription document of the user under the influencer
     user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
     
@@ -273,12 +268,13 @@ def add_subscription_id(influencer_id, user_id, bubble_user_uid):
     user_subscription_ref.update({
         'subscription_id': subscription_id
     })
+
+    return subscription_id
     # print(f"Added subscription_id: {subscription_id} for user {user_id} under influencer {influencer_id}.")
 
 
 
 def get_subscription_id(influencer_id, user_id):
-    db = init_database()
     # Reference to the specific subscription document of the user under the influencer
     user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
 
@@ -302,7 +298,6 @@ def get_subscription_id(influencer_id, user_id):
 
 
 def store_user_email(influencer_id, user_id, email):
-    db = init_database()
     # Reference to the specific subscription document of the user under the influencer
     user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
 
@@ -317,7 +312,6 @@ def store_user_email(influencer_id, user_id, email):
 # store_user_email('veronicaavluvaibot', 'user12345', 'kajen@gmail.com')
 
 def user_email_status(influencer_id, user_id):
-    db = init_database()
     
     # Reference to the user's subscription document
     user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
