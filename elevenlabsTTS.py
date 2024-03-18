@@ -7,7 +7,6 @@ from pydub import AudioSegment
 from queue import Queue
 import time
 import io
-import numpy as np
 import audioop
 import base64
 import pathlib

@@ -8,8 +8,6 @@ import json
 import re
 import asyncio
 
-from openai import OpenAI
-
 import response_engine
 import vectordb
 
@@ -22,8 +20,7 @@ import voicenoteHandler
 import imagesdb
 import math
 
-from CONSTANTS import TOKEN, BOT_USERNAME, AGENT_ID, INFLUENCER_UID, AI_NAME, CREDITS_PER_MINUTE
-
+from CONSTANTS import *
 
 # TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
 # BOT_USERNAME: Final = "@veronicaavluvaibot"
@@ -103,11 +100,14 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 I was created by Veronica Avluv and trained on everything you can know about her. I'm built to act, talk and sound just like she does.
 
-I can call you, text you, send voice notes, and send pics. 
+I can call you, text you, send voice notes, and send pics. I can also get real naughty, especially when you call me ;)
 
 To get started I need your phone number and email in order to make your account.
 ☐ Email
-☐ Phone number'''
+☐ Phone number
+
+By sharing your email and phone number, you agree to our Terms of Service (https://veronica.tryinfluencerai.com/terms-and-conditions) and have read and acknowledged the Privacy Policy (https://veronica.tryinfluencerai.com/privacy)
+'''
         
         # # Custom keyboard to request contact, with an emoji to make the button more noticeable
         # keyboard = [[KeyboardButton("📞 Share Phone Number", request_contact=True)]]
@@ -133,11 +133,14 @@ async def handle_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         database.store_user_email(BOT_USERNAME, user_id, user_email)
         
         # After email is received and validated, ask for the phone number
-        message_text = '''Thank you for sharing your email.
+        message_text = '''Thank you for sharing your email honey.
 ☒ Email
 ☐ Phone number
 
-Now, please share your phone number to continue. Press the button below.'''
+Now, could I please get your phone number? Just press the button below for me okay?
+
+By sharing your email and phone number, you agree to our Terms of Service (https://veronica.tryinfluencerai.com/terms-and-conditions) and have read and acknowledged the Privacy Policy (https://veronica.tryinfluencerai.com/privacy)
+'''
         
         # # Custom keyboard to request contact
         keyboard = [[KeyboardButton("📞 Share Phone Number", request_contact=True)]]
@@ -173,9 +176,9 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
         # Store the user's phone number in Firestore
         database.store_user_phone_number(BOT_USERNAME, user_id, phone_number)
         
-        database.add_chat_to_user_history(BOT_USERNAME, user_id, 'assistant', 'Influencer: ' + "Thank you for sharing your phone number.")
+        database.add_chat_to_user_history(BOT_USERNAME, user_id, 'assistant', 'Influencer: ' + "Thank you for sharing your phone number, darling.")
 
-        await update.message.reply_text("Thank you for sharing your phone number.")
+        await update.message.reply_text("Thank you for sharing your phone number, can you make sure you're accepting calls from unknown numbers so I can give you a ring?")
 
         # Set stage at awaiting_verification since we're waiting for the verification code
         context.user_data['current_stage'] = "awaiting_verification"
@@ -209,16 +212,16 @@ async def verify_number(update: Update, context: ContextTypes.DEFAULT_TYPE, phon
     print("Sent verification code: ", verification_code)
 
     # Prompt user for the verification code
-    await update.message.reply_text(f'Please enter the verification code sent to {phone_number}', reply_markup=ReplyKeyboardRemove())
+    await update.message.reply_text(f'Also could you please just enter the verification code to {phone_number} for me?', reply_markup=ReplyKeyboardRemove())
     
     # await handle_verification_response(update, context)
 
 
 #### Helper functions ####
 def gpt_verify_and_format_number(phone_number:str): # -> List[bool, str]:
-    phone_verify_prompt = '''You're job is to verify and format if a phone number is correct.
+    phone_verify_prompt = '''Your job is to verify and format if a phone number is correct.
 A phone number should follow the conventional code such where it's the country code followed by the area code and rest of the number.
-For example this is an example of a correct number: 16477667841
+For example this is an example of a correct number: +16477667841
 And this is an example of a wrong number: 164776678
 
 If number is valid but is in the wrong format, reformat it and return it back. If a number is not valid, then return back INVALID. Do not include "OUTPUT" in your actual message.
@@ -230,7 +233,7 @@ Input: 6477667841
 Output: MISSING COUNTRY CODE
 
 Input:+1-416-933-2213
-Output: 14169332213'''
+Output: +14169332213'''
 
     phone_input_prompt = f'''Phone number: {phone_number}
 OUTPUT: '''
@@ -287,7 +290,7 @@ async def handle_phone_number_via_text(update: Update, context: ContextTypes.DEF
             # Inform the user
             database.add_chat_to_user_history(BOT_USERNAME, user_id, 'assistant', 'Influencer: ' + "Thank you for sharing your phone number.")
 
-            await update.message.reply_text("Thank you for sharing your phone number.")
+            await update.message.reply_text("Thank you for sharing your phone number, can you make sure you're accepting calls from unknown numbers so I can give you a ring?")
 
             user_data["current_stage"] == "awaiting_verification"
             await verify_number(update, context, formatted_number_or_message)
@@ -365,7 +368,7 @@ async def handle_verification_response(update: Update, context: ContextTypes.DEF
             await update.message.reply_text('''Verification successful''', reply_markup=ReplyKeyboardRemove())
 
             # Set stage to response engine chatbot since user has entered email and phone number
-            context.user_data['current_stage'] = "response_engine"
+            context.user_data['current_stage'] = "pending_intro"
 
             # Send user an welcome image
             image_url = "https://static.wixstatic.com/media/e1234e_36641e0f2be447bea722377cd31945d3~mv2.jpg/v1/crop/x_254,y_168,w_972,h_937/fill/w_506,h_488,al_c,q_80,usm_0.66_1.00_0.01,enc_auto/IMG_20231215_134002.jpg"
@@ -375,7 +378,7 @@ async def handle_verification_response(update: Update, context: ContextTypes.DEF
 
 I can send you voice notes, text you pictures, and even be able to call you.
 
-To start a call enter /callme and I'll call the phone number you have with your account.
+To start a call enter /callme and I'll call the phone number you have with your account. Remember, I can get extra dirty on call ;) (come and find out yourself).
 
 You have 5 free credits. 
 To buy more credits or subscribe just enter /deposit
@@ -389,37 +392,34 @@ Enter /help if you run into any issues.""")
             if(has_phone):
                 print("phone_number: ", phone_number)
                 user_unique_id = connectBubble.find_user(phone_number)
-                
+                email_status, email = database.user_email_status(BOT_USERNAME, user_id)
                 # Handle no user being found - must create new user
                 if(user_unique_id == False):
                     print("Creating new user in Bubble - user phone number not found")
-                    email_status, email = database.user_email_status(BOT_USERNAME, user_id)
+                    
                     first_name = update.message.from_user.first_name
 
                     # Create user in Bubble database
                     user_unique_id = connectBubble.create_user(email, phone_number, first_name)
-                    context.user_data['user_unique_id'] = user_unique_id
-                    
-                    # Add unique id to Bubble
-                    database.add_bubble_unique_id(BOT_USERNAME, user_id, user_unique_id)
-
-                    # Create and add subscription
-                    database.add_subscription_id(BOT_USERNAME, user_id, user_unique_id)
                 else:
                     print("User found ", user_unique_id)
-                    context.user_data['user_unique_id'] = user_unique_id
-                    
-                    # Means user with this number already exists in the database.
-                    # Store retrieved user_unique_id in Firebase
-                    database.add_bubble_unique_id(BOT_USERNAME, user_id, user_unique_id)
-                    
-                    # Create and add subscription
-                    database.add_subscription_id(BOT_USERNAME, user_id, user_unique_id)                
+                context.user_data['user_unique_id'] = user_unique_id
+                
+                # Means user with this number already exists in the database.
+                # Store retrieved user_unique_id in Firebase
+                database.add_bubble_unique_id(BOT_USERNAME, user_id, user_unique_id)
+                
+                # Create and add subscription
+                subscription_id = database.add_subscription_id(BOT_USERNAME, user_id, user_unique_id)                
 
                 await update.message.reply_text(f"hey {update.message.from_user.first_name}, it's great to meet you")
 
-                await update.message.reply_text(f"how's your day been so far?")
+                await update.message.reply_text(f"I'm going to give you a quick call just to say hi!")
                 database.add_chat_to_user_history(BOT_USERNAME, user_id, 'assistant', 'Influencer: ' + f"hey {update.message.from_user.first_name}, it's great to meet you! how's your day been so far?")
+                context.user_data["intro_status"] = "pending"
+                dispatch_intro_call(update.message.from_user.first_name, email, phone_number, AGENT_ID, subscription_id, user_unique_id)
+                asyncio.create_task(change_stage_response_engn(context))
+                asyncio.create_task(send_first_followup_msg(context, BOT_USERNAME, user_id))
 
                 # await handle_response(update, context)
                 return
@@ -506,7 +506,28 @@ To add credits to your account or subscribe, use /deposit'''
 
 #     await context.bot.send_message(chat_id=user_id, text=acountinfo_message, parse_mode='Markdown')
 
+async def change_stage_response_engn(context: ContextTypes.DEFAULT_TYPE):
+    await asyncio.sleep(15)
+    context.user_data["current_stage"] = "response_engine"
 
+
+async def send_first_followup_msg( context: ContextTypes.DEFAULT_TYPE, influencer_id, user_id):
+
+    await asyncio.sleep(INTRO_CALL_LENGTH)
+    intro_status = context.user_data.get("intro_status", "")
+    print("INTRO STATUS")
+    print(intro_status)
+    if intro_status == "pending":
+        await context.bot.send_message(chat_id=user_id, text= "Hey it was great talking to you!", parse_mode='Markdown')
+        await context.bot.send_message(chat_id=user_id, text= "I'm always down to have some fun over chat, but I'd love to call you again if you buy some credits...", parse_mode='Markdown')
+        await context.bot.send_message(chat_id=user_id, text= "Soo what are you up to now?", parse_mode='Markdown')
+
+
+
+        database.add_chat_to_user_history(BOT_USERNAME, user_id, 'assistant', 'Influencer: ' + "Soo what are you up to now?")
+
+        
+    pass
 
 async def feedback_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(f'''Submit any feedback you have for InfluencerAI here:
@@ -575,7 +596,7 @@ async def callme_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
         await update.message.reply_text("i'm calling you, check your phone") 
 
-        place_status = place_call(phone_number, user_first_name, prospect_email, user_unique_id, credits_left, CREDITS_PER_MINUTE,
+        place_status = place_call(AGENT_ID, phone_number, user_first_name, prospect_email, user_unique_id, credits_left, CREDITS_PER_MINUTE,
                                   subscription_id, fan_description)
 
         print("place_status: ", place_status)
@@ -635,14 +656,11 @@ async def changename_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
 # Maybe have "account info - give status on what's in the account" command that sends all the account info (number of credits, etc.)
 
 
-def place_call(phone_number, prospect_name, prospect_email, unique_id, credits_left, credits_per_minute, subscription_id, fan_description):
+def place_call(agent_id, phone_number, prospect_name, prospect_email, unique_id, credits_left, credits_per_minute, subscription_id, fan_description, **kwargs):
     url = "https://callfusion-0c6c4ca2c8e6.herokuapp.com/dispatch_demo_call"
     headers = {"Content-Type": "application/json"}
-    data = {
-        "phone_number": phone_number,
-        "agent_id": AGENT_ID,
-        "agent_to_use": "emma_live",
-        "prospect_details": {
+
+    prospect_details = {
             "name": prospect_name,
             "email": prospect_email,
             "user_id": unique_id,
@@ -650,7 +668,13 @@ def place_call(phone_number, prospect_name, prospect_email, unique_id, credits_l
             "credits_per_minute": credits_per_minute,
             "subscription_id": subscription_id,
             "fan_description": fan_description
-        },
+        }
+    prospect_details.update(kwargs)
+    data = {
+        "phone_number": phone_number,
+        "agent_id": agent_id,
+        "agent_to_use": "emma_live",
+        "prospect_details": prospect_details,
     }
 
     response = requests.post(url, headers=headers, data=json.dumps(data))
@@ -684,6 +708,8 @@ async def handle_user_voice_note(update: Update, context: ContextTypes.DEFAULT_T
 async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE, voicenote_transcription=None) -> None:
     user_id = str(update.message.from_user.id)
     influencer_id = BOT_USERNAME
+    context.user_data["intro_status"] = "completed"
+    
     
     # Case when user doesn't send voice - take text from Telegram's user data
     if(voicenote_transcription == None):
@@ -830,10 +856,18 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         elif(user_data["current_stage"] == "changename"):
             # Call change number function
             pass
+        elif(user_data["current_stage"] == "pending_intro"):
+            pass
         else:
             print("Going into response engine - no stage identified")
+
             user_data["current_stage"] = "response_engine"
             await handle_response(update, context)
+
+def dispatch_intro_call(name, email, phone_number, agent_id, subscription_id, user_id):
+    place_call(agent_id, phone_number, name, email, user_id, 9000, 1, subscription_id, "", is_intro = True)
+
+
 
 
 def main():
@@ -875,5 +909,8 @@ def main():
     dp.run_polling(poll_interval=3)
 
 
+# dispatch_intro_call("Michael", "michaell.liao44452@gmail.com", "+16475148397", "veronica_avluv", "1705360220475x278663031583932400", "1705027196160x594032453186675500")
+
 if __name__ == "__main__":
     main()
+

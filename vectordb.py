@@ -1,7 +1,7 @@
 import os
 import requests
 import openai
-from langchain.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS
 #pip install -qU langchain-openai
 from langchain_openai import OpenAIEmbeddings
 
@@ -85,7 +85,7 @@ def build_knowledge_base(faq_vectors, index_name):
 
     db.save_local(index_name)
 
-    return FAISS.load_local(index_name, embeddings)
+    return FAISS.load_local(index_name, embeddings, allow_dangerous_deserialization=True)
 
 
 
@@ -151,7 +151,7 @@ def load_knowledge_base(index_name):
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
     
     try:
-        db = FAISS.load_local(index_name, embeddings)
+        db = FAISS.load_local(index_name, embeddings, allow_dangerous_deserialization=True)
         return db
     
     except:
