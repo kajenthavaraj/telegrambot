@@ -176,6 +176,28 @@ def stripe_webhook():
 
         message = f"Thank you for your continued subscription. Next billing date: {next_billing_date}."
         send_telegram_message(telegram_user_id, message)
+
+    elif event['type'] == 'invoice.payment_failed':
+        invoice = event['data']['object']
+        metadata = invoice.get('metadata', {})
+        telegram_user_id = metadata.get('telegram_user_id')
+
+        # Logic to handle payment failure
+        attempt_count = invoice['attempt_count']
+        next_payment_attempt = invoice['next_payment_attempt']
+        next_payment_date = datetime.utcfromtimestamp(next_payment_attempt).strftime('%Y-%m-%d') if next_payment_attempt else "N/A"
+
+        failure_message = f"There was an issue with the payment. Please ensure your payment details are valid and you have sufficient funds for the purchase. Attempt {attempt_count}. Next attempt on {next_payment_date}."
+        send_telegram_message(telegram_user_id, failure_message)
+
+    elif event['type'] == 'customer.subscription.deleted':
+        subscription = event['data']['object']
+        metadata = subscription.get('metadata', {})
+        telegram_user_id = metadata.get('telegram_user_id')
+
+        # Logic to handle subscription cancellation after payment failures
+        cancellation_message = "Your subscription has been canceled."
+        send_telegram_message(telegram_user_id, cancellation_message)
     
     return '', 200
     
