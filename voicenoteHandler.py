@@ -1,8 +1,12 @@
 from typing import Final
 
-from telegram.ext import Application, MessageHandler, filters, ContextTypes
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
-from telegram.constants import ChatAction
+# from telegram.ext import Application, MessageHandler, filters, ContextTypes
+# from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, InputFile, Bot
+# from telegram.constants import ChatAction
+
+from aiogram import Bot, types
+from aiogram.types import InputFile
+from aiogram.methods.send_voice import SendVoice
 
 import requests
 import asyncio
@@ -10,6 +14,7 @@ import json
 import time
 import os
 from pydub import AudioSegment
+import subprocess
 
 from openai import OpenAI
 
@@ -19,11 +24,10 @@ import elevenlabsTTS
 import connectBubble
 import bot
 
-import CONSTANTS
+from CONSTANTS import *
 
 
-TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
-BOT_USERNAME: Final = "@veronicaavluvaibot"
+bot = Bot(TOKEN)
 
 async def download_file(url: str, path: str):
     response = requests.get(url)
@@ -46,6 +50,16 @@ def transcribe_audio_file(audio_file_path):
     return extracted_text
 
 
+# async def send_voice_note(message: types.Message):
+#     result = await bot.send_voice(
+#         chat_id=message.chat.id,
+#         voice="PATH_TO_YOUR_VOICE_FILE_OR_FILE_ID",
+#         caption="Your optional caption here",
+#         parse_mode="Markdown",
+#     )
+#     print(result)
+
+
 # Get the length of an audio file in minutes
 def get_audio_duration(audio_file_path):
     # Load the audio file
@@ -58,21 +72,39 @@ def get_audio_duration(audio_file_path):
     return duration_minutes
 
 
-async def send_voice_note(update: Update, context: ContextTypes.DEFAULT_TYPE, ai_response: str) -> None:
+
+async def send_voice_note(message: types.Message, ai_response: str, bubble_unique_id:str) -> None:
     # This will send the 'recording audio' action to the chat
-    # await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.RECORD_AUDIO)
+    chat_id = message.chat.id
+    action_url = f"https://api.telegram.org/bot{TOKEN}/sendChatAction"
+    action_data = {
+        'chat_id': chat_id,
+        'action': 'record_voice'
+    }
+    response = requests.post(action_url, data=action_data)
+
+
 
     # Generate audio from the transcribed text
     audio_bytes = elevenlabsTTS.get_completed_audio(ai_response)
 
     # Save the generated audio to a file
-    audio_file_path = f"tts_output_{update.message.message_id}.mp3"
+    audio_file_path = f"tts_output_{message.message_id}.mp3"
     with open(audio_file_path, 'wb') as audio_file:
         audio_file.write(audio_bytes)
 
-    # Send the audio file as a voice note
-    with open(audio_file_path, 'rb') as audio_file:
-        await update.message.reply_voice(voice=InputFile(audio_file, filename=audio_file_path))
+    # voice = InputFile(audio_file_path)
+    url = f"https://api.telegram.org/bot{TOKEN}/sendVoice"
+
+    # Open the audio file in binary mode
+    with open(audio_file_path, 'rb') as audio:
+        files = {'voice': audio}
+        data = {'chat_id': message.chat.id}
+        # Make the request
+        response = requests.post(url, files=files, data=data)
+
+    # Check response
+    print(response.text)
 
     ##### Remove credits from user ####
     # Find how long audio file it
@@ -81,22 +113,23 @@ async def send_voice_note(update: Update, context: ContextTypes.DEFAULT_TYPE, ai
     
     # Check if type of duration_minutes is valid, and then remove the credits from the user
     if (isinstance(duration_minutes, float) or isinstance(duration_minutes, int)):
-        bubble_unique_id = bot.get_user_unique_id(update, context)
-        connectBubble.update_minutes_credits(bubble_unique_id, -duration_minutes)
+        connectBubble.deduct_minutes_credits(bubble_unique_id, -duration_minutes)
 
     # Delete the generated audio file after sending it
     os.remove(audio_file_path)
 
 
-async def transcribe_user_voice_note(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
-    user_id = str(update.message.from_user.id)
+
+
+async def transcribe_user_voice_note(message: types.Message) -> str:
+    user_id = str(message.from_user.id)
     
-    voice_note = update.message.voice
-    file = await context.bot.get_file(voice_note.file_id)
-    file_path = f"voice_note_{update.message.message_id}.ogg"  # Telegram voice notes are in .ogg format
+    voice_note = message.voice
+    file = await bot.get_file(voice_note.file_id)
+    file_path = f"voice_note_{message.message_id}.ogg"  # Telegram voice notes are in .ogg format
     
     # Download the voice note file
-    await download_file(file.file_path, file_path)
+    await bot.download_file(file.file_path, file_path)
 
     # Transcribe the voice note using Whisper API
     transcription = transcribe_audio_file(file_path)
@@ -107,8 +140,8 @@ async def transcribe_user_voice_note(update: Update, context: ContextTypes.DEFAU
     return transcription
 
 
-async def voice_note_creator(update: Update, context: ContextTypes.DEFAULT_TYPE, text:str) -> None:
-    user_id = str(update.message.from_user.id)
+async def voice_note_creator(message: types.Message, text:str, bubble_unique_id:str) -> None:
+    user_id = str(message.from_user.id)
 
     # Add the current message to the user's chat history
     database.add_chat_to_user_history(BOT_USERNAME, user_id, "user", "Fan: " + text)
@@ -120,19 +153,19 @@ async def voice_note_creator(update: Update, context: ContextTypes.DEFAULT_TYPE,
 
 
     # Generate response using Response Engine
-    ai_response = response_engine.voicenotes_create_response(parsed_chat_history, text, update)
-    # print("ai_response: ", ai_response)
+    ai_response = response_engine.voicenotes_create_response(parsed_chat_history, text, message)
+    print("ai_response: ", ai_response)
 
-    await send_voice_note(update, context, ai_response)
+    await send_voice_note(message, ai_response, bubble_unique_id)
 
 
 
-def main():
-    application = Application.builder().token(TOKEN).build() 
-    application.add_handler(MessageHandler(filters.VOICE, voice_note_creator))
+# def main():
+#     application = Application.builder().token(TOKEN).build() 
+#     application.add_handler(MessageHandler(filters.VOICE, voice_note_creator))
 
-    print("Polling...")
-    application.run_polling()
+#     print("Polling...")
+#     application.run_polling()
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
