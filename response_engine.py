@@ -599,7 +599,7 @@ Influencer: '''
     
     messages = [{"role" : "system", "content" : main_prompt}]
     
-    print(main_prompt)
+    # print(main_prompt)
     # Get reduced chat history and write it into the messages array
     # append_messages_chat_history(messages, chat_history, 300)
     
