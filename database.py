@@ -5,6 +5,7 @@ from datetime import datetime
 import pytz
 import time
 
+
 import bubbledb
 import connectBubble
 
@@ -174,6 +175,38 @@ def phone_number_status(influencer_id, user_id):
 #     print("User's phone number is not available.")
     
 
+
+
+
+def update_verification_code(influencer_id, user_id, code):
+    # Reference to the specific subscription document of the user under the influencer
+    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
+    
+    # Update the document with the new verification code
+    user_subscription_ref.set({'verification_code': code}, merge=True)
+    # The merge=True option ensures that only the 'verification_code' field is modified, leaving other fields untouched
+
+
+def get_verification_code(influencer_id, user_id):
+    # Reference to the specific subscription document of the user under the influencer
+    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
+
+    # Attempt to fetch the subscription document
+    user_subscription_doc = user_subscription_ref.get()
+
+    # Check if the document exists
+    if user_subscription_doc.exists:
+        user_data = user_subscription_doc.to_dict()
+        # Check if the 'verification_code' field is present in the document
+        if 'verification_code' in user_data:
+            return user_data['verification_code']  # Return the verification code
+        else:
+            return None  # 'verification_code' field is not present
+    else:
+        return None  # Document does not exist
+
+
+
 def update_verification_status(influencer_id, user_id, status):
     # Reference to the user's subscription document
     user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
@@ -186,7 +219,6 @@ def update_verification_status(influencer_id, user_id, status):
 
 # Example usage:
 # update_verification_status('veronicaavluvaibot', 'user12345', "True")
-
 
 
 def get_verification_status(influencer_id, user_id):
@@ -213,6 +245,46 @@ def get_verification_status(influencer_id, user_id):
 # Example usage:
 # status = get_verification_status('veronicaavluvaibot', 'user12345')
 # print(status)
+
+
+
+
+
+## Storing user's states
+    # awaiting_email
+    # awaiting_contact
+    # awaiting_code
+    # awaiting_verification
+    
+    # response_engine
+
+def update_state(influencer_id, user_id, state):
+    # Reference to the specific subscription document of the user under the influencer
+    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
+    
+    # Update the document with the new state
+    user_subscription_ref.set({'state': state}, merge=True)
+
+
+def get_state(influencer_id, user_id):
+    # Reference to the specific subscription document of the user under the influencer
+    user_subscription_ref = db.collection('influencers').document(influencer_id).collection('subscriptions').document(user_id)
+
+    # Attempt to fetch the subscription document
+    user_subscription_doc = user_subscription_ref.get()
+
+    # Check if the document exists
+    if user_subscription_doc.exists:
+        user_data = user_subscription_doc.to_dict()
+        # Check if the 'state' field is present in the document
+        if 'state' in user_data:
+            return user_data['state']  # Return the user's state
+        else:
+            return None  # 'state' field is not present
+    else:
+        return None  # Document does not exist
+
+
 
 
 

@@ -4,6 +4,9 @@ from telegram import Update
 import re
 import random
 
+
+from aiogram import Bot, types
+
 import vectordb
 
 
@@ -451,10 +454,10 @@ Influencer: '''
 ###################################################################################
 ###################### Voicenotes Response Creation Function ######################
 ###################################################################################
-def voicenotes_create_response(chat_history: dict, user_transcription: str, update: Update) -> str:
+def voicenotes_create_response(chat_history: dict, user_transcription: str, message: types.Message) -> str:
 
-    user_first_name = update.message.from_user.first_name
-
+    user_first_name = message.from_user.first_name
+    
     user_transcription = str(user_transcription)
 
     # Load Influencer's Knowledge base

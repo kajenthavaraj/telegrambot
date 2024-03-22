@@ -62,6 +62,7 @@ def get_global_commands():
 awaiting_email
 awaiting_contact
 awaiting_verification
+pending_intro
 response_engine
 
 changenumber
@@ -413,14 +414,15 @@ Enter /help if you run into any issues.""")
                 subscription_id = database.add_subscription_id(BOT_USERNAME, user_id, user_unique_id)                
 
                 await update.message.reply_text(f"hey {update.message.from_user.first_name}, it's great to meet you")
-
                 await update.message.reply_text(f"I'm going to give you a quick call just to say hi!")
+                await update.message.reply_text(f"just make sure that do not disturb is off so my call goes through")
+                
                 database.add_chat_to_user_history(BOT_USERNAME, user_id, 'assistant', 'Influencer: ' + f"hey {update.message.from_user.first_name}, it's great to meet you! how's your day been so far?")
                 context.user_data["intro_status"] = "pending"
                 dispatch_intro_call(update.message.from_user.first_name, email, phone_number, AGENT_ID, subscription_id, user_unique_id)
                 asyncio.create_task(change_stage_response_engn(context))
                 asyncio.create_task(send_first_followup_msg(context, BOT_USERNAME, user_id))
-
+                
                 # await handle_response(update, context)
                 return
             else:
