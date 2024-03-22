@@ -50,6 +50,7 @@ COMMAND_HANDLERS = {
     "/feedback": None,
     "/callme": None,
     "/balance": None,
+    "/deposit": None,
 }
 
 
@@ -477,14 +478,17 @@ LOGIN_FUNCTIONS["awaiting_verification"] = awaiting_verification
 
 ########## Telegram bot commands ##########
 async def start_command(message: types.Message):
-    if(not login_status):
-        pass
-    # Executes when user is not logged in
-    else:
-        pass
+    return
+
 async def help_command(message: types.Message):
-    # Logic for help_command
-    await bot.send_message(chat_id=message.chat.id, text="This is the help command response.")
+    message_text = f'''If you want me to call you, use /callme
+To see your balance use /balance
+To buy more credits or subscribe, use /deposit
+
+If you're facing any issues, contact admin@tryinfluencer.ai'''
+
+    await bot.send_message(chat_id=message.chat.id, text=message_text)
+
 
 async def feedback_command(message: types.Message):
     message_text = f'''Submit any feedback you have for InfluencerAI here:
@@ -495,8 +499,25 @@ You're feedback helps us improve your experience and add features you want to se
 
 
 async def balance_command(message: types.Message):
-    # Logic for balance_command
-    await bot.send_message(chat_id=message.chat.id, text="This is the balance command response.")
+    user_id = str(message.from_user.id)
+
+    # Get the user's credits info
+    unique_id = database.get_bubble_unique_id(BOT_USERNAME, user_id)
+
+    # Double check that user actually exists
+    if(unique_id == False or unique_id == 'False'):
+        print("Unique ID is False - doesn't exist")
+        print("User should not get here - fix the bug")
+        acountinfo_message = f'''You don't have a phone number connected to your account yet. Please finsh signing up in order to access your account info.'''
+    else:
+        num_credits = connectBubble.get_minutes_credits(unique_id)
+        num_credits = str(round(num_credits, 2))
+        acountinfo_message = f'''You have *{num_credits} InfluencerAI credits* available
+
+To add credits to your account or subscribe, use /deposit'''
+        
+    await bot.send_message(chat_id=message.chat.id, text=acountinfo_message, parse_mode='Markdown')
+
 
 async def callme_command(message: types.Message) -> None:
     user_id = str(message.from_user.id)
@@ -532,12 +553,17 @@ async def callme_command(message: types.Message) -> None:
         await message.reply("you need to connect your phone number in order for me to be able to call you")
 
 
+
+
+
+
 # Update COMMAND_HANDLERS with actual functions
 COMMAND_HANDLERS["/start"] = start_command
 COMMAND_HANDLERS["/help"] = help_command
 COMMAND_HANDLERS["/feedback"] = feedback_command
 COMMAND_HANDLERS["/callme"] = callme_command
 COMMAND_HANDLERS["/balance"] = balance_command
+COMMAND_HANDLERS["/deposit"] = paymentstest.purchase
 
 
 
@@ -609,6 +635,7 @@ async def handle_response(message: types.Message, voicenote_transcription=None) 
         # Send message to buy credits
         await bot.send_message(chat_id=message.chat.id, text="You are out of minutes for your account. Purchase more below in order to continue.")
         await paymentstest.purchase(message)
+        
     else:
         await voicenoteHandler.voice_note_creator(message, text, unique_id)
 
