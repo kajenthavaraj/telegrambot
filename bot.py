@@ -377,7 +377,7 @@ async def handle_verification_response(update: Update, context: ContextTypes.DEF
 
             await update.message.reply_text(f"""You're all set to start using {AI_NAME}!
 
-I can send you voice notes, text you picutres, and even be able to call you.
+I can send you voice notes, text you pictures, and even be able to call you.
 
 To start a call enter /callme and I'll call the phone number you have with your account. Remember, I can get extra dirty on call ;) (come and find out yourself).
 
