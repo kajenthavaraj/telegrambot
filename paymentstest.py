@@ -25,7 +25,7 @@ import openai
 # stripe.api_key = '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'
 stripe.api_key = 'sk_test_51IsqDJBo1ZNr3GjAvWVMXtJUnocMO3LsOBaZKJIwtKcAd6regW0OrOgLGrjldgvMmS3K6PW3q4rkTDIbWb3VCUm00072rgmWbe'
 
-bot = Bot(token=TOKEN)
+# bot = Bot(token=TOKEN)
 
 
 # async def start(update: Update, context: ContextTypes) -> None:
@@ -71,17 +71,33 @@ bot = Bot(token=TOKEN)
 
 
 
-async def purchase(message: types.Message) -> None:
-    keyboard = [
-        [InlineKeyboardButton("5 minutes ($5)", callback_data='5')],
-        [InlineKeyboardButton("10 minutes ($10)", callback_data='10')],
-        [InlineKeyboardButton("20 minutes ($20)", callback_data='20')],
-        [InlineKeyboardButton("50 minutes ($50)", callback_data='50')],
+async def purchase(message: types.Message, bot: Bot) -> None:
+    user_id = str(message.from_user.id)
+
+    # Define the buttons
+    buttons = [
+        types.InlineKeyboardButton(text="5 minutes ($5)", callback_data='5'),
+        types.InlineKeyboardButton(text="10 minutes ($10)", callback_data='10'),
+        types.InlineKeyboardButton(text="20 minutes ($20)", callback_data='20'),
+        types.InlineKeyboardButton(text="50 minutes ($50)", callback_data='50'),
     ]
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await bot.send_message(chat_id=message.chat.id, text='Please choose the duration you’d like to purchase:', reply_markup=reply_markup)
+    bubble_unique_id = get_bubble_unique_id(BOT_USERNAME, user_id)
+    # The function now returns a boolean indicating active status and the subscription status
+    has_active_subscription, subscription_status = check_user_subscription(bubble_unique_id, INFLUENCER_UID) 
+    print(f"Active subscription status: {has_active_subscription}, Status: {subscription_status}")
 
+    if not has_active_subscription and subscription_status == None:
+        buttons.append(types.InlineKeyboardButton(text="Subscribe - 50 minutes/month ($24.99)", callback_data='btn_from_deposit'),)
+
+    # Organize buttons into a keyboard layout
+    keyboard_layout = [[btn] for btn in buttons]
+
+    # Create InlineKeyboardMarkup with the specified layout
+    reply_markup = types.InlineKeyboardMarkup(inline_keyboard=keyboard_layout)
+
+    # Send the message with the inline keyboard
+    await bot.send_message(chat_id=message.chat.id, text='Please choose the duration you’d like to purchase:', reply_markup=reply_markup)
 
 
 
@@ -116,7 +132,30 @@ async def purchase(message: types.Message) -> None:
 #         await update.message.reply_text('Choose your subscription plan:', reply_markup=reply_markup)
 
 
-async def subscribe(message: types.Message) -> None:
+async def send_subscription_message(chat_id, bot: Bot):
+    buttons = [
+                types.InlineKeyboardButton(text="Monthly - $24.99", callback_data='subscribe_monthly'),
+                types.InlineKeyboardButton(text="Yearly - $249", callback_data='subscribe_yearly'),
+    ]
+    
+    # Organize buttons into a keyboard layout
+    keyboard_layout = [[btn] for btn in buttons]
+
+    # Create InlineKeyboardMarkup with the specified layout
+    reply_markup = types.InlineKeyboardMarkup(inline_keyboard=keyboard_layout)
+    
+    subscription_message = '''*What You Get:*
+    • Daily pictures
+    • 50 free minutes/month
+
+Choose your subscription plan:'''
+
+    await bot.send_message(chat_id=chat_id, text=subscription_message, reply_markup=reply_markup, parse_mode='Markdown')
+
+
+
+
+async def subscribe(message: types.Message, bot: Bot) -> None:
     influencer_id = BOT_USERNAME 
     influencer_UID = INFLUENCER_UID
     user_id = str(message.from_user.id)
@@ -135,18 +174,11 @@ async def subscribe(message: types.Message) -> None:
 
     if has_active_subscription and subscription_status == "complete":
         print("User already has an active subscription.")
-        message = "You already have an active subscription."
-        await bot.send_message(chat_id=message.chat.id, text=message)
+        message_text = "You already have an active subscription."
+        await bot.send_message(chat_id=message.chat.id, text=message_text)
 
     else:
-        keyboard = [
-            [InlineKeyboardButton("Monthly - $24.99", callback_data='subscribe_monthly')],
-            [InlineKeyboardButton("Yearly - $249", callback_data='subscribe_yearly')]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await bot.send_message(chat_id=message.chat.id, text='Choose your subscription plan:', reply_markup=reply_markup)
-
+        await send_subscription_message(message.chat.id, bot)
 
 
 
@@ -179,7 +211,7 @@ async def subscribe(message: types.Message) -> None:
 #         await update.message.reply_text("You currently do not have an active subscription. Please use /subscribe to subscribe.")
 
 
-async def manage_subscription(message: types.Message) -> None:
+async def manage_subscription(message: types.Message, bot: Bot) -> None:
     influencer_id = BOT_USERNAME 
     influencer_UID = INFLUENCER_UID
     user_id = str(message.from_user.id)
@@ -195,16 +227,25 @@ async def manage_subscription(message: types.Message) -> None:
     has_active_subscription, subscription_status = check_user_subscription(bubble_unique_id, influencer_UID) 
     print(f"Active subscription status: {has_active_subscription}, Status: {subscription_status}")
 
-    if has_active_subscription:
-        keyboard = [
-            [InlineKeyboardButton("Cancel Subscription", callback_data='cancel_subscription')],
-            [InlineKeyboardButton("Check Balance and Subscription ", callback_data='check_account')]
+    # if has_active_subscription:
+    if True:
+        buttons = [
+            types.InlineKeyboardButton(text="Cancel Subscription", callback_data='cancel_subscription'),
+            types.InlineKeyboardButton(text="Check Balance and Subscription", callback_data='check_account'),
         ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        # Organize buttons into a keyboard layout
+        keyboard_layout = [[btn] for btn in buttons]
+
+        # Create InlineKeyboardMarkup with the specified layout
+        reply_markup = types.InlineKeyboardMarkup(inline_keyboard=keyboard_layout)
+        
+         # Send the message with the inline keyboard
         await bot.send_message(chat_id=message.chat.id, text='Manage your subscription:', reply_markup=reply_markup)
 
     else:
-        await bot.send_message(chat_id=message.chat.id, text="You currently do not have an active subscription. Please use /subscribe to subscribe.", reply_markup=reply_markup)
+        await bot.send_message(chat_id=message.chat.id, text="""You currently do not have an active subscription.
+Please use /subscribe to subscribe.""")
 
 
 
@@ -220,15 +261,20 @@ async def manage_subscription(message: types.Message) -> None:
 #     await query.edit_message_text("Are you sure you want to cancel your subscription?", reply_markup=reply_markup)
     
 
-async def handle_subscription_cancellation(callback_query: types.CallbackQuery):
-    # Prepare the confirmation message with InlineKeyboardMarkup
-    keyboard = [
-        [InlineKeyboardButton("Yes, cancel my subscription", callback_data='confirm_cancel_subscription')],
-        [InlineKeyboardButton("No, keep my subscription", callback_data='keep_subscription')]
+async def handle_subscription_cancellation(callback_query: types.CallbackQuery, bot: Bot):
+    buttons = [
+        types.InlineKeyboardButton(text="Yes, cancel my subscription", callback_data='confirm_cancel_subscription'),
+        types.InlineKeyboardButton(text="No, keep my subscription", callback_data='keep_subscription'),
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    # await query.edit_message_text("Are you sure you want to cancel your subscription?", reply_markup=reply_markup)
-    await callback_query.message.edit_text("Are you sure you want to cancel your subscription?", reply_markup=reply_markup)
+
+    # Organize buttons into a keyboard layout
+    keyboard_layout = [[btn] for btn in buttons]
+
+    # Create InlineKeyboardMarkup with the specified layout
+    reply_markup = types.InlineKeyboardMarkup(inline_keyboard=keyboard_layout)
+    # await callback_query.message.edit_text("Are you sure you want to cancel your subscription?", reply_markup=reply_markup)
+    await bot.send_message(chat_id=callback_query.message.chat.id, text="Are you sure you want to cancel your subscription?", reply_markup=reply_markup)
+
 
 
 
@@ -264,7 +310,7 @@ async def handle_subscription_cancellation(callback_query: types.CallbackQuery):
 #         await query.edit_message_text("You do not have an active subscription to cancel.")
 
 
-async def confirm_subscription_cancellation(callback_query: types.CallbackQuery):
+async def confirm_subscription_cancellation(callback_query: types.CallbackQuery, bot:Bot):
     # query = update.callback_query
 
     user_id = str(callback_query.from_user.id)
@@ -286,14 +332,18 @@ async def confirm_subscription_cancellation(callback_query: types.CallbackQuery)
             # Update the subscription status in your database
             successful_update = update_subscription(user_uid=bubble_unique_id, telegram_user_id=user_id, influencer_uid=influencer_UID, subscription_ID=stripe_subscription_id, subscription_plan=None, status="cancelled", last_billing_date=None, next_billing_date=None, amount_paid=None)
             if successful_update:
-                await callback_query.message.edit_text("Your subscription has been successfully cancelled.")
+                # await callback_query.message.edit_text("Your subscription has been successfully cancelled.")
+                await bot.send_message(chat_id=callback_query.message.chat.id, text="Your subscription has been successfully cancelled.")
             else:
                 raise Exception("Failed to update Bubble database.")
         except Exception as e:
             print(f"Error cancelling subscription with Stripe: {e}")
-            await callback_query.message.edit_text("Failed to cancel the subscription. Please contact support.")
+            # await callback_query.message.edit_text("Failed to cancel the subscription. Please contact support.")
+            await bot.send_message(chat_id=callback_query.message.chat.id, text="Failed to cancel the subscription. Please contact support.")
     else:
-        await callback_query.message.edit_text("You do not have an active subscription to cancel.")
+        # await callback_query.message.edit_text("You do not have an active subscription to cancel.")
+        await bot.send_message(chat_id=callback_query.message.chat.id, text="You do not have an active subscription to cancel.")
+
 
 
 
@@ -329,7 +379,7 @@ async def confirm_subscription_cancellation(callback_query: types.CallbackQuery)
 
 
 
-async def balance_command(callback_query: types.CallbackQuery):
+async def balance_command(callback_query: types.CallbackQuery, bot:Bot):
     user_id = str(callback_query.from_user.id)
     influencer_id = BOT_USERNAME
     influencer_UID = INFLUENCER_UID
@@ -354,7 +404,8 @@ async def balance_command(callback_query: types.CallbackQuery):
 
     # Send message to user
     message_content = f"{subscription_message}\n{credits_message}"
-    await callback_query.message.edit_text(message_content)
+    # await callback_query.message.edit_text(message_content)
+    await bot.send_message(chat_id=callback_query.message.chat.id, text=message_content)
 
 
 
@@ -435,10 +486,11 @@ async def balance_command(callback_query: types.CallbackQuery):
 
 
 
-async def button(callback_query: types.CallbackQuery):
-    await callback_query.answer()
+async def button(callback_query: types.CallbackQuery, bot: Bot):
+    print("Button called")
+    # await callback_query.answer() ###MAYBE comment back in
     user_id = str(callback_query.from_user.id)
-
+    
     if callback_query.data.startswith('subscribe'):
         # Subscription handling logic
         if callback_query.data == 'subscribe_monthly':
@@ -459,20 +511,28 @@ async def button(callback_query: types.CallbackQuery):
             metadata={'telegram_user_id': user_id},
         )
 
-        keyboard = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("Complete Subscription", url=checkout_session.url))
-        await callback_query.message.bot.send_message(chat_id=callback_query.message.chat.id, text="Please complete your subscription:", reply_markup=keyboard)
+        payment_text = "Complete Subscription"
+        payment_button = types.InlineKeyboardButton(text="Complete Payment", url=checkout_session.url)
+        keyboard = types.InlineKeyboardMarkup(inline_keyboard=[[payment_button]])
+        await bot.send_message(chat_id=callback_query.message.chat.id, text=payment_text, reply_markup=keyboard)
+
+
+
+    elif callback_query.data == 'btn_from_deposit':
+        await send_subscription_message(callback_query.message.chat.id, bot)
 
     elif callback_query.data == 'cancel_subscription':
-        await handle_subscription_cancellation(callback_query)
+        await handle_subscription_cancellation(callback_query, bot)
 
     elif callback_query.data == 'confirm_cancel_subscription':
-        await confirm_subscription_cancellation(callback_query)
+        await confirm_subscription_cancellation(callback_query, bot)
 
     elif callback_query.data == 'keep_subscription':
-        await callback_query.message.edit_text("Your subscription remains active. Thank you for staying with us.")
+        # await callback_query.message.edit_text("Your subscription remains active. Thank you for staying with us.")
+        await bot.send_message(chat_id=callback_query.message.chat.id, text="Your subscription remains active. Thank you for staying with us.")
 
     elif callback_query.data == 'check_account':
-        await balance_command(callback_query)
+        await balance_command(callback_query, bot)
 
     else:
         # One-off payment handling logic
@@ -498,8 +558,13 @@ async def button(callback_query: types.CallbackQuery):
         )
 
         payment_text = "Please complete your payment:\n\n(all payments are securely processed by Stripe)"
-        keyboard = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("Complete Payment", url=checkout_session.url))
-        await callback_query.message.bot.send_message(chat_id=callback_query.message.chat.id, text=payment_text, reply_markup=keyboard)
+        payment_button = types.InlineKeyboardButton(text="Complete Payment", url=checkout_session.url)
+        keyboard = types.InlineKeyboardMarkup(inline_keyboard=[[payment_button]])
+
+        
+        print("checkout_session.url")
+        print(checkout_session.url)
+        await bot.send_message(chat_id=callback_query.message.chat.id, text=payment_text, reply_markup=keyboard)
 
 
 
