@@ -1,4 +1,4 @@
-from aiogram import Bot, types
+from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
 from aiohttp import web
@@ -51,6 +51,8 @@ COMMAND_HANDLERS = {
     "/callme": None,
     "/balance": None,
     "/deposit": None,
+    "/manage": None,
+    "/subscribe": None,
 }
 
 
@@ -61,12 +63,8 @@ LOGIN_FUNCTIONS = {
 }
 
 
-
-
 # Default assuming user has logged in
 login_status = True
-
-
 
 # @functions_framework.http
 async def webhook_entry(request):
@@ -130,9 +128,19 @@ async def webhook_entry(request):
                     if text.startswith('/'):
                         print("Is a command")
                         # Use the command mapping for dispatch
-                        command_handler = COMMAND_HANDLERS.get(text.split()[0])  # Extract command and get handler
+                        command_name = text.split()[0]
+                        command_handler = COMMAND_HANDLERS.get(command_name)  # Extract command and get handler
                         if command_handler:
-                            await command_handler(message)
+                            if(command_name == "/deposit"):
+                                print("Called /deposit - passing in bot object")
+                                await command_handler(message, bot)
+                            elif(command_name == "/manage"):
+                                print("Called /manage - passing in bot object")
+                                await command_handler(message, bot)
+                            elif(command_name == "/subscribe"):
+                                await command_handler(message, bot)
+                            else:
+                                await command_handler(message)
                         else:
                             # Optionally handle unknown commands
                             await bot.send_message(chat_id=message.chat.id, text="Sorry, I don't recognize that command.")
@@ -146,6 +154,12 @@ async def webhook_entry(request):
                 elif message.voice is not None:
                     print("Recieved voice note")
                     await handle_user_voice_note(message)
+        
+        # Handling callback queries - when user clicks on buttons
+        elif 'callback_query' in update:
+            callback_query = types.CallbackQuery(**update['callback_query'])
+            print(f"Received callback query data: {callback_query.data}")
+            await paymentstest.button(callback_query, bot)
         
         return web.Response(status=204)
     return web.Response(text='OK', status=200)
@@ -564,6 +578,8 @@ COMMAND_HANDLERS["/feedback"] = feedback_command
 COMMAND_HANDLERS["/callme"] = callme_command
 COMMAND_HANDLERS["/balance"] = balance_command
 COMMAND_HANDLERS["/deposit"] = paymentstest.purchase
+COMMAND_HANDLERS["/manage"] = paymentstest.manage_subscription
+COMMAND_HANDLERS["/subscribe"] = paymentstest.subscribe
 
 
 
@@ -634,8 +650,7 @@ async def handle_response(message: types.Message, voicenote_transcription=None) 
     if(current_minutes_credits <= 0):
         # Send message to buy credits
         await bot.send_message(chat_id=message.chat.id, text="You are out of minutes for your account. Purchase more below in order to continue.")
-        await paymentstest.purchase(message)
-        
+        await paymentstest.purchase(message, bot)
     else:
         await voicenoteHandler.voice_note_creator(message, text, unique_id)
 
