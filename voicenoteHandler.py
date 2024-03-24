@@ -156,6 +156,9 @@ async def voice_note_creator(message: types.Message, text:str, bubble_unique_id:
     ai_response = response_engine.voicenotes_create_response(parsed_chat_history, text, message)
     print("ai_response: ", ai_response)
 
+    ## Add the AI response to user's chat history
+    database.add_chat_to_user_history(BOT_USERNAME, user_id, "agent", "Girlfriend: " + ai_response)
+
     await send_voice_note(message, ai_response, bubble_unique_id)
 
 

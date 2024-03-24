@@ -79,7 +79,6 @@ def stripe_webhook():
                 subscription_credits = 50
             elif amount_paid == '249.00':
                 subscription_plan = 'Yearly'
-                subscription_credits = 600
             else:
                 subscription_plan = 'Unknown Plan'
 

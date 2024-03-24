@@ -252,9 +252,8 @@ By sharing your email and phone number, you agree to our Terms of Service (https
         database.update_state(BOT_USERNAME, user_id, "awaiting_email")
 
         # Handle invalid email format
-        await bot.send_message(chat_id=message.chat.id, text="It seems like the email you entered is invalid.")
-        await bot.send_message(chat_id=message.chat.id, text="Please enter your email again below:")
-
+        await bot.send_message(chat_id=message.chat.id, text="""It seems like the email you entered is invalid.
+Please enter your email again below:""")
 
 
 async def verify_number(message: types.Message, phone_number: str) -> None:
