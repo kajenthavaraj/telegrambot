@@ -7,6 +7,7 @@ from database import get_bubble_unique_id
 import CONSTANTS
 import logging
 from datetime import datetime
+from CONSTANTS import *
 
 
 # Flask app setup
@@ -21,7 +22,6 @@ endpoint_secret = 'whsec_xtHqX4aEuAlh8kYH8Wcp90sQeENaUS52' # this is the test ve
 
 
 # Telegram setup
-BOT_TOKEN = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"  
 
 # Bubble setup
 BUBBLE_API_URL = "https://app.tryinfluencerai.com/api/1.1/obj/"  
@@ -76,8 +76,10 @@ def stripe_webhook():
 
             if amount_paid == '24.99':
                 subscription_plan = 'Monthly'
+                subscription_credits = 50
             elif amount_paid == '249.00':
                 subscription_plan = 'Yearly'
+                subscription_credits = 600
             else:
                 subscription_plan = 'Unknown Plan'
 
@@ -129,7 +131,13 @@ def stripe_webhook():
 
                 if success:
                     print(f"Subscription {stripe_subscription_id} added successfully")
-                    message = f"Your subscription has been activated! Next billing date: {next_billing_date}."
+                    message = f"""Your subscription has been activated! 
+Next billing date: {next_billing_date}."""
+                    
+                    
+                    # Now you can update the credits in Bubble using this unique ID
+                    success = update_minutes_credits(bubble_unique_id, subscription_credits, amount_paid, stripe_subscription_id, influencer_UID, status)
+
                 else:
                     print("Failed to add subscription")
                     message = "Failed to add subscription. Please contact support."
@@ -203,7 +211,7 @@ def stripe_webhook():
     
 
 def send_telegram_message(telegram_user_id, message):
-    send_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    send_url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     payload = {
         "chat_id": telegram_user_id,
         "text": message
