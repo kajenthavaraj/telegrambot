@@ -14,7 +14,7 @@ import time
 import requests
 import json
 import stripe
-from CONSTANTS import TOKEN, BOT_USERNAME, AGENT_ID, INFLUENCER_UID, AI_NAME
+from CONSTANTS import *
 from database import get_bubble_unique_id
 from connectBubble import get_user_subscription, check_user_subscription, update_subscription, check_user_subscription_more_detail
 import connectBubble
@@ -506,8 +506,8 @@ async def button(callback_query: types.CallbackQuery, bot: Bot):
                 'quantity': 1,
             }],
             mode='subscription',
-            success_url='https://t.me/veronicaavluvaibot?start=subscription_successful',
-            cancel_url='https://t.me/veronicaavluvaibot?start=subscription_canceled',
+            success_url=f'https://t.me/{BOT_USERNAME_SHORT}?start=subscription_successful',
+            cancel_url=f'https://t.me/{BOT_USERNAME_SHORT}?start=subscription_canceled',
             metadata={'telegram_user_id': user_id},
         )
 
@@ -553,8 +553,8 @@ async def button(callback_query: types.CallbackQuery, bot: Bot):
             }],
             metadata={'telegram_user_id': user_id},
             mode='payment',
-            success_url='https://t.me/veronicaavluvaibot?start=payment_successful',
-            cancel_url='https://t.me/veronicaavluvaibot?start=payment_canceled',
+            success_url=f'https://t.me/{BOT_USERNAME_SHORT}?start=payment_successful',
+            cancel_url=f'https://t.me/{BOT_USERNAME_SHORT}?start=payment_canceled',
         )
 
         payment_text = "Please complete your payment:\n\n(all payments are securely processed by Stripe)"

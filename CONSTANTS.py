@@ -5,6 +5,9 @@ TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
 
 BOT_USERNAME: Final = "@veronicaavluvaibot"
 
+BOT_USERNAME_SHORT: Final = "veronicaavluvaibot"
+
+
 CREDITS_PER_MINUTE = 1
 
 AGENT_ID = "veronica_avluv"
