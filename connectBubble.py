@@ -5,8 +5,6 @@ import phonenumbers
 import loginuser
 import json
 
-import CONSTANTS
-
 def extract_country_code_and_number(phone_number):
     print("extract_country_code_and_number ", phone_number)
     try:

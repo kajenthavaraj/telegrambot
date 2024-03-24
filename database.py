@@ -8,9 +8,6 @@ import time
 
 import bubbledb
 import connectBubble
-
-from CONSTANTS import TOKEN, BOT_USERNAME, AGENT_ID, INFLUENCER_UID, AI_NAME
-
 # Check if the default Firebase app has already been initialized
 if not firebase_admin._apps:
     KEYPATH = 'telegrambot-d6553-firebase-adminsdk-ruf4v-91d571bca9.json'
@@ -328,9 +325,9 @@ def get_bubble_unique_id(influencer_id, user_id):
 
 
 
-def add_subscription_id(influencer_id, user_id, bubble_user_uid):
+def add_subscription_id(influencer_id, user_id, bubble_user_uid, influencer_bubble_id):
     # Create subscription_id
-    subscription_id = connectBubble.add_subscription(bubble_user_uid, user_id, INFLUENCER_UID)
+    subscription_id = connectBubble.add_subscription(bubble_user_uid, user_id, influencer_bubble_id)
 
     # Add to Firebase
     # Reference to the specific subscription document of the user under the influencer

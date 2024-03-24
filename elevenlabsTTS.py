@@ -15,6 +15,7 @@ import requests
 import json
 
 import CONSTANTS
+from influencer_data import Influencer
 
 
 # sudo apt update
@@ -23,17 +24,12 @@ import CONSTANTS
 
 
 
-with open("voice_model_map.json", "r") as file:
-    voice_model_map = json.load(file)
-
-with open("voice_settings_map.json", "r") as file:
-    voice_settings_map = json.load(file)
 
 def get_audio_data(
-    text: str, agent_id, chunk_size=3004, model="eleven_multilingual_v2"
+    text: str, influencer : Influencer, chunk_size=3004, model="eleven_multilingual_v2"
 ):
     text = text.strip(",")
-    voice = voice_model_map[agent_id]
+    voice = influencer.voice_id
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice}/stream"
 
     # print("similarity " + str(voice_settings_map.get(self.voicestatus.agent_id, {}).get("similarity_boost", 50)))
@@ -43,10 +39,10 @@ def get_audio_data(
         "model_id": model,
         "text": text,
         "voice_settings": {
-            "similarity_boost": voice_settings_map.get(agent_id, {}).get(
+            "similarity_boost": influencer.voice_settings.get(
                 "similarity_boost", 0.4
             ),
-            "stability": voice_settings_map.get(agent_id, {}).get("stability", 0.7),
+            "stability": influencer.voice_settings.get("stability", 0.7),
         },
     }
     headers = {
@@ -65,8 +61,8 @@ def get_audio_data(
             # print(len(chunk))
             yield chunk
 
-def get_completed_audio(text, model="eleven_multilingual_v2"):
-    gen = get_audio_data(text=text, agent_id=CONSTANTS.AGENT_ID, chunk_size=3004, model=model)
+def get_completed_audio(text, influencer : Influencer, model="eleven_multilingual_v2"):
+    gen = get_audio_data(text, influencer, chunk_size=3004, model=model)
     complete_audio_bytes = b""
     complete_audio = b""
 
