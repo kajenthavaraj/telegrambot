@@ -14,12 +14,11 @@ import time
 import requests
 import json
 import stripe
-from CONSTANTS import *
 from database import get_bubble_unique_id
 from connectBubble import get_user_subscription, check_user_subscription, update_subscription, check_user_subscription_more_detail
 import connectBubble
 from datetime import datetime 
-
+from influencer_data import Influencer
 import openai
 
 # stripe.api_key = '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'
@@ -71,7 +70,7 @@ stripe.api_key = 'sk_test_51IsqDJBo1ZNr3GjAvWVMXtJUnocMO3LsOBaZKJIwtKcAd6regW0Or
 
 
 
-async def purchase(message: types.Message, bot: Bot) -> None:
+async def purchase(message: types.Message, influencer : Influencer) -> None:
     user_id = str(message.from_user.id)
 
     # Define the buttons
@@ -82,9 +81,9 @@ async def purchase(message: types.Message, bot: Bot) -> None:
         types.InlineKeyboardButton(text="50 minutes ($50)", callback_data='50'),
     ]
 
-    bubble_unique_id = get_bubble_unique_id(BOT_USERNAME, user_id)
+    bubble_unique_id = get_bubble_unique_id(influencer.bot_username, user_id)
     # The function now returns a boolean indicating active status and the subscription status
-    has_active_subscription, subscription_status = check_user_subscription(bubble_unique_id, INFLUENCER_UID) 
+    has_active_subscription, subscription_status = check_user_subscription(bubble_unique_id, influencer.bubble_id) 
     print(f"Active subscription status: {has_active_subscription}, Status: {subscription_status}")
 
     if not has_active_subscription and subscription_status == None:
@@ -97,7 +96,7 @@ async def purchase(message: types.Message, bot: Bot) -> None:
     reply_markup = types.InlineKeyboardMarkup(inline_keyboard=keyboard_layout)
 
     # Send the message with the inline keyboard
-    await bot.send_message(chat_id=message.chat.id, text='Please choose the duration you’d like to purchase:', reply_markup=reply_markup)
+    await influencer.bot_object.send_message(chat_id=message.chat.id, text='Please choose the duration you’d like to purchase:', reply_markup=reply_markup)
 
 
 
@@ -155,9 +154,9 @@ Choose your subscription plan:'''
 
 
 
-async def subscribe(message: types.Message, bot: Bot) -> None:
-    influencer_id = BOT_USERNAME 
-    influencer_UID = INFLUENCER_UID
+async def subscribe(message: types.Message, influencer : Influencer) -> None:
+    influencer_id = influencer.bot_username
+    influencer_UID = influencer.bubble_id
     user_id = str(message.from_user.id)
 
     bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
@@ -165,7 +164,7 @@ async def subscribe(message: types.Message, bot: Bot) -> None:
 
     if not bubble_unique_id:
         print("Bubble unique ID not found")
-        await bot.send_message(chat_id=message.chat.id, text="Error retrieving your subscription information. Please try again.")
+        await influencer.bot_object.send_message(chat_id=message.chat.id, text="Error retrieving your subscription information. Please try again.")
 
     
     # The function now returns a boolean indicating active status and the subscription status
@@ -175,10 +174,10 @@ async def subscribe(message: types.Message, bot: Bot) -> None:
     if has_active_subscription and subscription_status == "complete":
         print("User already has an active subscription.")
         message_text = "You already have an active subscription."
-        await bot.send_message(chat_id=message.chat.id, text=message_text)
+        await influencer.bot_object.send_message(chat_id=message.chat.id, text=message_text)
 
     else:
-        await send_subscription_message(message.chat.id, bot)
+        await send_subscription_message(message.chat.id, influencer.bot_objectt)
 
 
 
@@ -211,9 +210,9 @@ async def subscribe(message: types.Message, bot: Bot) -> None:
 #         await update.message.reply_text("You currently do not have an active subscription. Please use /subscribe to subscribe.")
 
 
-async def manage_subscription(message: types.Message, bot: Bot) -> None:
-    influencer_id = BOT_USERNAME 
-    influencer_UID = INFLUENCER_UID
+async def manage_subscription(message: types.Message, influencer : Influencer) -> None:
+    influencer_id = influencer.bot_username
+    influencer_UID = influencer.bubble_id
     user_id = str(message.from_user.id)
 
     bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
@@ -221,7 +220,7 @@ async def manage_subscription(message: types.Message, bot: Bot) -> None:
 
     if not bubble_unique_id:
             print("Bubble unique ID not found")
-            await bot.send_message(chat_id=message.chat.id, text="Error retrieving your subscription information. Please try again.")
+            await influencer.bot_object.send_message(chat_id=message.chat.id, text="Error retrieving your subscription information. Please try again.")
     
     # The function now returns a boolean indicating active status and the subscription status
     has_active_subscription, subscription_status = check_user_subscription(bubble_unique_id, influencer_UID) 
@@ -241,10 +240,10 @@ async def manage_subscription(message: types.Message, bot: Bot) -> None:
         reply_markup = types.InlineKeyboardMarkup(inline_keyboard=keyboard_layout)
         
          # Send the message with the inline keyboard
-        await bot.send_message(chat_id=message.chat.id, text='Manage your subscription:', reply_markup=reply_markup)
+        await influencer.bot_object.send_message(chat_id=message.chat.id, text='Manage your subscription:', reply_markup=reply_markup)
 
     else:
-        await bot.send_message(chat_id=message.chat.id, text="""You currently do not have an active subscription.
+        await influencer.bot_object.send_message(chat_id=message.chat.id, text="""You currently do not have an active subscription.
 Please use /subscribe to subscribe.""")
 
 
@@ -310,12 +309,12 @@ async def handle_subscription_cancellation(callback_query: types.CallbackQuery, 
 #         await query.edit_message_text("You do not have an active subscription to cancel.")
 
 
-async def confirm_subscription_cancellation(callback_query: types.CallbackQuery, bot:Bot):
+async def confirm_subscription_cancellation(callback_query: types.CallbackQuery, influencer : Influencer):
     # query = update.callback_query
 
     user_id = str(callback_query.from_user.id)
-    influencer_id = BOT_USERNAME
-    influencer_UID = INFLUENCER_UID
+    influencer_id = influencer.bot_username
+    influencer_UID = influencer.bubble_id
 
     bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
 
@@ -333,16 +332,16 @@ async def confirm_subscription_cancellation(callback_query: types.CallbackQuery,
             successful_update = update_subscription(user_uid=bubble_unique_id, telegram_user_id=user_id, influencer_uid=influencer_UID, subscription_ID=stripe_subscription_id, subscription_plan=None, status="cancelled", last_billing_date=None, next_billing_date=None, amount_paid=None)
             if successful_update:
                 # await callback_query.message.edit_text("Your subscription has been successfully cancelled.")
-                await bot.send_message(chat_id=callback_query.message.chat.id, text="Your subscription has been successfully cancelled.")
+                await influencer.bot_object.send_message(chat_id=callback_query.message.chat.id, text="Your subscription has been successfully cancelled.")
             else:
                 raise Exception("Failed to update Bubble database.")
         except Exception as e:
             print(f"Error cancelling subscription with Stripe: {e}")
             # await callback_query.message.edit_text("Failed to cancel the subscription. Please contact support.")
-            await bot.send_message(chat_id=callback_query.message.chat.id, text="Failed to cancel the subscription. Please contact support.")
+            await influencer.bot_object.send_message(chat_id=callback_query.message.chat.id, text="Failed to cancel the subscription. Please contact support.")
     else:
         # await callback_query.message.edit_text("You do not have an active subscription to cancel.")
-        await bot.send_message(chat_id=callback_query.message.chat.id, text="You do not have an active subscription to cancel.")
+        await influencer.bot_object.send_message(chat_id=callback_query.message.chat.id, text="You do not have an active subscription to cancel.")
 
 
 
@@ -379,10 +378,10 @@ async def confirm_subscription_cancellation(callback_query: types.CallbackQuery,
 
 
 
-async def balance_command(callback_query: types.CallbackQuery, bot:Bot):
+async def balance_command(callback_query: types.CallbackQuery, influencer : Influencer):
     user_id = str(callback_query.from_user.id)
-    influencer_id = BOT_USERNAME
-    influencer_UID = INFLUENCER_UID
+    influencer_id = influencer.bot_username
+    influencer_UID = influencer.bubble_id
 
     bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
 
@@ -405,7 +404,7 @@ async def balance_command(callback_query: types.CallbackQuery, bot:Bot):
     # Send message to user
     message_content = f"{subscription_message}\n{credits_message}"
     # await callback_query.message.edit_text(message_content)
-    await bot.send_message(chat_id=callback_query.message.chat.id, text=message_content)
+    await influencer.bot_object.send_message(chat_id=callback_query.message.chat.id, text=message_content)
 
 
 
@@ -486,10 +485,11 @@ async def balance_command(callback_query: types.CallbackQuery, bot:Bot):
 
 
 
-async def button(callback_query: types.CallbackQuery, bot: Bot):
+async def button(callback_query: types.CallbackQuery, influencer : Influencer):
     print("Button called")
     # await callback_query.answer() ###MAYBE comment back in
     user_id = str(callback_query.from_user.id)
+    bot_username_short = influencer.bot_username[1:]
     
     if callback_query.data.startswith('subscribe'):
         # Subscription handling logic
@@ -506,33 +506,33 @@ async def button(callback_query: types.CallbackQuery, bot: Bot):
                 'quantity': 1,
             }],
             mode='subscription',
-            success_url=f'https://t.me/{BOT_USERNAME_SHORT}?start=subscription_successful',
-            cancel_url=f'https://t.me/{BOT_USERNAME_SHORT}?start=subscription_canceled',
+            success_url=f'https://t.me/{bot_username_short}?start=subscription_successful',
+            cancel_url=f'https://t.me/{bot_username_short}?start=subscription_canceled',
             metadata={'telegram_user_id': user_id},
         )
 
         payment_text = "Complete Subscription"
         payment_button = types.InlineKeyboardButton(text="Complete Payment", url=checkout_session.url)
         keyboard = types.InlineKeyboardMarkup(inline_keyboard=[[payment_button]])
-        await bot.send_message(chat_id=callback_query.message.chat.id, text=payment_text, reply_markup=keyboard)
+        await influencer.bot_object.send_message(chat_id=callback_query.message.chat.id, text=payment_text, reply_markup=keyboard)
 
 
 
     elif callback_query.data == 'btn_from_deposit':
-        await send_subscription_message(callback_query.message.chat.id, bot)
+        await send_subscription_message(callback_query.message.chat.id, influencer.bot_object)
 
     elif callback_query.data == 'cancel_subscription':
-        await handle_subscription_cancellation(callback_query, bot)
+        await handle_subscription_cancellation(callback_query, influencer.bot_object)
 
     elif callback_query.data == 'confirm_cancel_subscription':
-        await confirm_subscription_cancellation(callback_query, bot)
+        await confirm_subscription_cancellation(callback_query, influencer)
 
     elif callback_query.data == 'keep_subscription':
         # await callback_query.message.edit_text("Your subscription remains active. Thank you for staying with us.")
-        await bot.send_message(chat_id=callback_query.message.chat.id, text="Your subscription remains active. Thank you for staying with us.")
+        await influencer.bot_object.send_message(chat_id=callback_query.message.chat.id, text="Your subscription remains active. Thank you for staying with us.")
 
     elif callback_query.data == 'check_account':
-        await balance_command(callback_query, bot)
+        await balance_command(callback_query, influencer)
 
     else:
         # One-off payment handling logic
@@ -553,8 +553,8 @@ async def button(callback_query: types.CallbackQuery, bot: Bot):
             }],
             metadata={'telegram_user_id': user_id},
             mode='payment',
-            success_url=f'https://t.me/{BOT_USERNAME_SHORT}?start=payment_successful',
-            cancel_url=f'https://t.me/{BOT_USERNAME_SHORT}?start=payment_canceled',
+            success_url=f'https://t.me/{bot_username_short}?start=payment_successful',
+            cancel_url=f'https://t.me/{bot_username_short}?start=payment_canceled',
         )
 
         payment_text = "Please complete your payment:\n\n(all payments are securely processed by Stripe)"
@@ -564,7 +564,7 @@ async def button(callback_query: types.CallbackQuery, bot: Bot):
         
         print("checkout_session.url")
         print(checkout_session.url)
-        await bot.send_message(chat_id=callback_query.message.chat.id, text=payment_text, reply_markup=keyboard)
+        await influencer.bot_object.send_message(chat_id=callback_query.message.chat.id, text=payment_text, reply_markup=keyboard)
 
 
 

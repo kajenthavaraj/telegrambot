@@ -3,7 +3,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemo
 
 from aiohttp import web
 import database
-
+import asyncio
 import re
 import os
 import time
@@ -24,6 +24,7 @@ import math
 
 
 from CONSTANTS import *
+from influencer_data import Influencer, load_influencers
 
 # Telegram bot states
     # awaiting_email
@@ -39,8 +40,6 @@ from CONSTANTS import *
         # Expected code
 
 
-
-bot = Bot(token=TOKEN)
 
 
 # Define global variables
@@ -70,10 +69,18 @@ login_status = True
 async def webhook_entry(request):
     print("Request received")
     if request.method == "POST":
+
+        agent_id = request.match_info['slug']
+        influencer_obj : Influencer = Influencer._registry[agent_id]
+        telegram_bot : Bot = influencer_obj.bot_object
         update = await request.json()
+
+        print("UPDATE: " + str(update))
 
         if 'message' in update:
             message = types.Message(**update['message'])
+
+            print("MESSAGE: " + str(message))
 
             user_text = message.text
             print("User said: ", user_text)
@@ -81,13 +88,17 @@ async def webhook_entry(request):
             user_id = str(message.from_user.id)
 
             # Check if user has to login - get current state
-            state = database.get_state(BOT_USERNAME, user_id)
+            state = database.get_state(influencer_obj.bot_username, user_id)
             print(state)
-                        
-            if(state != "response_engine"):
+
+
+            if(state != "response_engine" and state != "in_intro_call"):
                 login_status = False
             else:
                 login_status = True
+
+            if state == "in_intro_call":
+                database.update_state(influencer_obj.bot_username, user_id, "response_engine")
 
             ################## Handling user's message ##################
             
@@ -96,19 +107,21 @@ async def webhook_entry(request):
                 # If state doesn't exist then set it to awaiting_email
                 if(state == None):
                     # Add user to database, send initial message asking them to send their email, and set state to awaiting_email
-                    await initialize_user(message)
+                    await initialize_user(message, influencer_obj)
+                elif state == "pending_intro":
+                    pass
                 else:
                     if(user_text != None):
                         text = message.text.strip()
                         print(f"Received text: {text}")  # Print the text of the message
                         if text.startswith('/'):
-                            await bot.send_message(chat_id=message.chat.id, text = "Please complete signing up before using any commands")
+                            await telegram_bot.send_message(chat_id=message.chat.id, text = "Please complete signing up before using any commands")
                         else:
                             # Use the login function mapping for dispatch
                             login_function = LOGIN_FUNCTIONS.get(state)  # Extract login function and get handler
 
                             if login_function:
-                                await login_function(message)
+                                await login_function(message, influencer_obj)
                             
                             print("Non message function")
                             # Handle non-command text messages
@@ -117,7 +130,7 @@ async def webhook_entry(request):
                         if(state == "awaiting_contact"):
                             contact = message.contact
                             if(contact != None):
-                                await handle_contact_for_login(message)
+                                await handle_contact_for_login(message, influencer_obj)
 
             # Handling if user is already signed up
             else:
@@ -133,33 +146,33 @@ async def webhook_entry(request):
                         if command_handler:
                             if(command_name == "/deposit"):
                                 print("Called /deposit - passing in bot object")
-                                await command_handler(message, bot)
+                                await command_handler(message, influencer_obj)
                             elif(command_name == "/manage"):
                                 print("Called /manage - passing in bot object")
-                                await command_handler(message, bot)
+                                await command_handler(message, influencer_obj)
                             elif(command_name == "/subscribe"):
-                                await command_handler(message, bot)
+                                await command_handler(message, influencer_obj)
                             else:
-                                await command_handler(message)
+                                await command_handler(message, influencer_obj)
                         else:
                             # Optionally handle unknown commands
-                            await bot.send_message(chat_id=message.chat.id, text="Sorry, I don't recognize that command.")
+                            await telegram_bot.send_message(chat_id=message.chat.id, text="Sorry, I don't recognize that command.")
 
                     else:
                         print("Non message function")
                         # Handle non-command text messages
-                        await handle_response(message)
+                        await handle_response(message, influencer_obj)
                 
                 # Handling voice note
                 elif message.voice is not None:
                     print("Recieved voice note")
-                    await handle_user_voice_note(message)
+                    await handle_user_voice_note(message, influencer_obj)
         
         # Handling callback queries - when user clicks on buttons
         elif 'callback_query' in update:
             callback_query = types.CallbackQuery(**update['callback_query'])
             print(f"Received callback query data: {callback_query.data}")
-            await paymentstest.button(callback_query, bot)
+            await paymentstest.button(callback_query, influencer_obj)
         
         return web.Response(status=204)
     return web.Response(text='OK', status=200)
@@ -174,26 +187,28 @@ async def webhook_entry(request):
 
 ########## Telegram bot login functions ##########
 
-async def initialize_user(message: types.Message):
+async def initialize_user(message: types.Message, influencer_obj : Influencer):
 
     user_id = str(message.from_user.id)
+    bot_username = influencer_obj.bot_username
+    bot = influencer_obj.bot_object
 
     # Check if user is subscribed and add them if not
-    database.add_user_to_influencer_subscription(BOT_USERNAME, user_id)
+    database.add_user_to_influencer_subscription(bot_username, user_id)
 
     # set stage to awaiting_email
-    database.update_state(BOT_USERNAME, user_id, "awaiting_email")
+    database.update_state(bot_username, user_id, "awaiting_email")
 
     user_first_name = message.from_user.first_name
     
 
-    # Send user an intro image
-    image_url = "https://static.wixstatic.com/media/e1234e_36641e0f2be447bea722377cd31945d3~mv2.jpg/v1/crop/x_254,y_168,w_972,h_937/fill/w_506,h_488,al_c,q_80,usm_0.66_1.00_0.01,enc_auto/IMG_20231215_134002.jpg"
-   
-    # await send_image(update, context, image_url)
-    await bot.send_photo(chat_id=message.chat.id, photo=image_url)
 
-    message_text = f'''Hey {user_first_name}, welcome to {AI_NAME} 💕!
+    
+    # await send_image(update, context, image_url)
+    if influencer_obj.intro_image_url:
+        await bot.send_photo(chat_id=message.chat.id, photo=influencer_obj.intro_image_url)
+
+    message_text = f'''Hey {user_first_name}, welcome to {influencer_obj.ai_name} 💕!
 
 I was created by Veronica Avluv and trained on everything you can know about her. I'm built to act, talk and sound just like she does.
 
@@ -211,18 +226,20 @@ By sharing your email and phone number, you agree to our Terms of Service (https
 
 
 
-async def awaiting_email(message: types.Message):
+async def awaiting_email(message: types.Message, influencer : Influencer):
     user_email = message.text
     user_id = str(message.from_user.id)
+    bot_username = influencer.bot_username
+    bot = influencer.bot_object
 
 
     # Check if user entered a valid email
     if re.match(r"[^@]+@[^@]+\.(?!con$)[^@]+", user_email):
         # Set stage to awaiting_contact
-        database.update_state(BOT_USERNAME, user_id, "awaiting_contact")
+        database.update_state(bot_username, user_id, "awaiting_contact")
 
         # Store user email in database
-        database.store_user_email(BOT_USERNAME, user_id, user_email)
+        database.store_user_email(bot_username, user_id, user_email)
 
         # After email is received and validated, ask for the phone number
         message_text = '''Thank you for sharing your email honey.
@@ -249,18 +266,18 @@ By sharing your email and phone number, you agree to our Terms of Service (https
     # If user didn't enter a valid email - ask them to re-enter it
     else:
         # Set stage to awaiting_contact
-        database.update_state(BOT_USERNAME, user_id, "awaiting_email")
+        database.update_state(bot_username, user_id, "awaiting_email")
 
         # Handle invalid email format
         await bot.send_message(chat_id=message.chat.id, text="""It seems like the email you entered is invalid.
 Please enter your email again below:""")
 
 
-async def verify_number(message: types.Message, phone_number: str) -> None:
+async def verify_number(message: types.Message, phone_number: str, influencer : Influencer) -> None:
     user_id = str(message.from_user.id)
 
     print("Finding verfication status")
-    verification_status = database.get_verification_status(BOT_USERNAME, user_id)
+    verification_status = database.get_verification_status(influencer.bot_username, user_id)
     print("verification_status:", verification_status)
 
     if(verification_status == True):
@@ -271,32 +288,32 @@ async def verify_number(message: types.Message, phone_number: str) -> None:
     
     loginuser.send_verification_code(phone_number, verification_code)
 
-    database.update_verification_status(BOT_USERNAME, user_id, "False")
-    database.update_verification_code(BOT_USERNAME, user_id, verification_code)
+    database.update_verification_status(influencer.bot_username, user_id, "False")
+    database.update_verification_code(influencer.bot_username, user_id, verification_code)
 
     print("Sent verification code: ", verification_code)
 
     # Ask user for the verification code
-    await bot.send_message(chat_id=message.chat.id, text=f'Also could you please just enter the verification code to {phone_number} for me?', reply_markup=ReplyKeyboardRemove())
+    await influencer.bot_object.send_message(chat_id=message.chat.id, text=f'Also could you please just enter the verification code to {phone_number} for me?', reply_markup=ReplyKeyboardRemove())
 
 
 
 
 
 # Funciton to handle when user sends contact during login - saves their phone number
-async def handle_contact_for_login(message: types.Message):
+async def handle_contact_for_login(message: types.Message, influencer : Influencer):
     contact = message.contact    
     phone_number = contact.phone_number
     user_id = str(message.from_user.id)
 
     # Save phone number in database
-    database.store_user_phone_number(BOT_USERNAME, user_id, str(phone_number))
+    database.store_user_phone_number(influencer.bot_username, user_id, str(phone_number))
     
-    await bot.send_message(chat_id=message.chat.id, text="Thank you for sharing your phone number, can you make sure you're accepting calls from unknown numbers so I can give you a ring?", reply_markup=ReplyKeyboardRemove())
+    await influencer.bot_object.send_message(chat_id=message.chat.id, text="Thank you for sharing your phone number, can you make sure you're accepting calls from unknown numbers so I can give you a ring?", reply_markup=ReplyKeyboardRemove())
     
-    await verify_number(message, phone_number)
+    await verify_number(message, phone_number, influencer)
 
-    database.update_state(BOT_USERNAME, user_id, "awaiting_verification")
+    database.update_state(influencer.bot_username, user_id, "awaiting_verification")
 
 
 
@@ -339,7 +356,7 @@ OUTPUT: '''
         return True, ai_response
 
 
-async def handle_phone_via_text(message: types.Message):
+async def handle_phone_via_text(message: types.Message, influencer : Influencer):
     phone_number_entered = message.text
     user_id = str(message.from_user.id)
 
@@ -348,17 +365,17 @@ async def handle_phone_via_text(message: types.Message):
 
     if is_valid:
         # Store the formatted phone number in Firestore
-        database.store_user_phone_number(BOT_USERNAME, user_id, formatted_number_or_message)
+        database.store_user_phone_number(influencer.bot_username, user_id, formatted_number_or_message)
 
         # Inform the user
-        database.add_chat_to_user_history(BOT_USERNAME, user_id, 'assistant', 'Influencer: ' + "Thank you for sharing your phone number.")
+        database.add_chat_to_user_history(influencer.bot_username, user_id, 'assistant', 'Influencer: ' + "Thank you for sharing your phone number.")
 
-        await bot.send_message(chat_id=message.chat.id, text="Thank you for sharing your phone number, can you make sure you're accepting calls from unknown numbers so I can give you a ring?")
+        await influencer.bot_object.send_message(chat_id=message.chat.id, text="Thank you for sharing your phone number, can you make sure you're accepting calls from unknown numbers so I can give you a ring?")
 
         # Update user's state to awaiting_verification
-        database.update_state(BOT_USERNAME, user_id, "awaiting_verification")
+        database.update_state(influencer.bot_username, user_id, "awaiting_verification")
 
-        await verify_number(message, formatted_number_or_message)
+        await verify_number(message, formatted_number_or_message, influencer)
 
     else:
         # Custom keyboard to request contact
@@ -378,27 +395,27 @@ async def handle_phone_via_text(message: types.Message):
 
 Please try again using the '📞 Share Phone Number' button below.'''
 
-        await bot.send_message(chat_id=message.chat.id, text=retry_message, reply_markup=markup)
+        await influencer.bot_object.send_message(chat_id=message.chat.id, text=retry_message, reply_markup=markup)
 
 
-async def awaiting_verification(message: types.Message):
+async def awaiting_verification(message: types.Message, influencer : Influencer):
     user_id = str(message.from_user.id)
 
     code_entered = message.text
-    expected_code =  database.get_verification_code(BOT_USERNAME, user_id)
+    expected_code =  database.get_verification_code(influencer.bot_username, user_id)
 
 
     if(str(code_entered) == str(expected_code)):
         # Go to the response_engine stage - user is fully signed up
-        database.update_state(BOT_USERNAME, user_id, "response_engine")
-        database.update_verification_status(BOT_USERNAME, user_id, "True")
+        database.update_state(influencer.bot_username, user_id, "pending_intro")
+        database.update_verification_status(influencer.bot_username, user_id, "True")
 
         # Call intro user function to send all the intro and welcome message and initialize user in the Bubble database
-        await intro_user(message)
+        await intro_user(message, influencer)
     
     else:
         # Go back to the awaiting_contact stage to get their phone number again
-        database.update_state(BOT_USERNAME, user_id, "awaiting_contact") 
+        database.update_state(influencer.bot_username, user_id, "awaiting_contact") 
 
         # Custom keyboard to request contact
         markup = ReplyKeyboardMarkup(
@@ -410,19 +427,18 @@ async def awaiting_verification(message: types.Message):
 
         message_text = "The code you entered was incorrect, please share your phone number again"
 
-        await bot.send_message(chat_id=message.chat.id, text=message_text, reply_markup=markup)
+        await influencer.bot_object.send_message(chat_id=message.chat.id, text=message_text, reply_markup=markup)
 
 
 
-async def intro_user(message: types.Message):
+async def intro_user(message: types.Message, influencer : Influencer):
     user_id = str(message.from_user.id)
 
     # Send user an welcome image
-    image_url = "https://static.wixstatic.com/media/e1234e_36641e0f2be447bea722377cd31945d3~mv2.jpg/v1/crop/x_254,y_168,w_972,h_937/fill/w_506,h_488,al_c,q_80,usm_0.66_1.00_0.01,enc_auto/IMG_20231215_134002.jpg"
+    if influencer.intro_image_url:
+        await influencer.bot_object.send_photo(chat_id=message.chat.id, photo=influencer.intro_image_url)
 
-    await bot.send_photo(chat_id=message.chat.id, photo=image_url)
-
-    await bot.send_message(chat_id=message.chat.id, text=f"""You're all set to start using {AI_NAME}!
+    await influencer.bot_object.send_message(chat_id=message.chat.id, text=f"""You're all set to start using {influencer.ai_name}!
 
 I can send you voice notes, text you picutres, and even be able to call you.
 
@@ -433,12 +449,12 @@ To buy more credits or subscribe just enter /deposit
 
 Enter /help if you run into any issues.""")
 
-    has_phone, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
+    has_phone, phone_number = database.phone_number_status(influencer.bot_username, user_id)
 
     # Initialize user in the database
     user_unique_id = connectBubble.find_user(phone_number)
 
-    email_status, email = database.user_email_status(BOT_USERNAME, user_id)
+    email_status, email = database.user_email_status(influencer.bot_username, user_id)
 
     if(has_phone == False or email_status == False):
         print("HOW THE FUCK DID WE GET HERE")
@@ -457,19 +473,21 @@ Enter /help if you run into any issues.""")
     else:
         print("User found ", user_unique_id)
 
-    database.add_bubble_unique_id(BOT_USERNAME, user_id, user_unique_id)
+    database.add_bubble_unique_id(influencer.bot_username, user_id, user_unique_id)
                 
     # Create and add subscription
-    subscription_id = database.add_subscription_id(BOT_USERNAME, user_id, user_unique_id)
+    subscription_id = database.add_subscription_id(influencer.bot_username, user_id, user_unique_id, influencer.bubble_id)
 
-    await bot.send_message(chat_id=message.chat.id, text=f"hey {message.from_user.first_name}, it's great to meet you")
-    await bot.send_message(chat_id=message.chat.id, text=f"I'm going to give you a quick call just to say hi!")
-    await bot.send_message(chat_id=message.chat.id, text=f"just make sure that do not disturb is off so my call goes through")
+    await influencer.bot_object.send_message(chat_id=message.chat.id, text=f"hey {message.from_user.first_name}, it's great to meet you")
+    await influencer.bot_object.send_message(chat_id=message.chat.id, text=f"I'm going to give you a quick call just to say hi!")
+    await influencer.bot_object.send_message(chat_id=message.chat.id, text=f"just make sure that do not disturb is off so my call goes through")
 
     # Call the user
-    dispatch_intro_call(message.from_user.first_name, email, phone_number, AGENT_ID, subscription_id, user_unique_id)
+    dispatch_intro_call(message.from_user.first_name, email, phone_number, influencer.agent_id, subscription_id, user_unique_id)
 
-
+    asyncio.create_task(change_stage_response_engn(influencer.bot_username, user_id))
+    asyncio.create_task(send_first_followup_msg(user_id, influencer))
+    
 
 def dispatch_intro_call(name, email, phone_number, agent_id, subscription_id, user_id):
     place_call(agent_id, phone_number, name, email, user_id, 9000, 1, subscription_id, "", is_intro = True)
@@ -490,32 +508,32 @@ LOGIN_FUNCTIONS["awaiting_verification"] = awaiting_verification
 
 
 ########## Telegram bot commands ##########
-async def start_command(message: types.Message):
+async def start_command(message: types.Message, influencer : Influencer):
     return
 
-async def help_command(message: types.Message):
+async def help_command(message: types.Message, influencer : Influencer):
     message_text = f'''If you want me to call you, use /callme
 To see your balance use /balance
 To buy more credits or subscribe, use /deposit
 
 If you're facing any issues, contact admin@tryinfluencer.ai'''
 
-    await bot.send_message(chat_id=message.chat.id, text=message_text)
+    await influencer.bot_object.send_message(chat_id=message.chat.id, text=message_text)
 
 
-async def feedback_command(message: types.Message):
+async def feedback_command(message: types.Message, influencer : Influencer):
     message_text = f'''Submit any feedback you have for InfluencerAI here:
 https://forms.gle/ZvB4vXse3SZKfqHA6
 
 You're feedback helps us improve your experience and add features you want to see.'''
-    await bot.send_message(chat_id=message.chat.id, text=message_text)
+    await influencer.bot_object.send_message(chat_id=message.chat.id, text=message_text)
 
 
-async def balance_command(message: types.Message):
+async def balance_command(message: types.Message, influencer : Influencer):
     user_id = str(message.from_user.id)
 
     # Get the user's credits info
-    unique_id = database.get_bubble_unique_id(BOT_USERNAME, user_id)
+    unique_id = database.get_bubble_unique_id(influencer.bot_username, user_id)
 
     # Double check that user actually exists
     if(unique_id == False or unique_id == 'False'):
@@ -529,28 +547,29 @@ async def balance_command(message: types.Message):
 
 To add credits to your account or subscribe, use /deposit'''
         
-    await bot.send_message(chat_id=message.chat.id, text=acountinfo_message, parse_mode='Markdown')
+    await influencer.bot_object.send_message(chat_id=message.chat.id, text=acountinfo_message, parse_mode='Markdown')
 
 
-async def callme_command(message: types.Message) -> None:
+async def callme_command(message: types.Message, influencer: Influencer) -> None:
     user_id = str(message.from_user.id)
 
-    has_phone, phone_number = database.phone_number_status(BOT_USERNAME, user_id)
+    has_phone, phone_number = database.phone_number_status(influencer.bot_username, user_id)
 
-    user_unique_id = database.get_bubble_unique_id(BOT_USERNAME, user_id)
+    user_unique_id = database.get_bubble_unique_id(influencer.bot_username, user_id)
 
     if(has_phone == True):
         user_first_name = message.from_user.first_name
         prospect_email = connectBubble.get_user_email(user_unique_id)
         credits_left = connectBubble.get_minutes_credits(user_unique_id)
-        subscription_id = database.get_subscription_id(BOT_USERNAME, user_id)
+        subscription_id = database.get_subscription_id(influencer.bot_username, user_id)
         
         # IMPLEMENT LATER: fan description left blank
         fan_description = ""
 
-        await message.reply("i'm calling you, check your phone") 
+        await influencer.bot_object.send_message(chat_id= message.chat.id, text="i'm calling you, check your phone" )
+        # await message.reply("i'm calling you, check your phone") 
 
-        place_status = place_call(AGENT_ID, phone_number, user_first_name, prospect_email, user_unique_id, credits_left, CREDITS_PER_MINUTE,
+        place_status = place_call(influencer.agent_id, phone_number, user_first_name, prospect_email, user_unique_id, credits_left, influencer.credits_per_min,
                                   subscription_id, fan_description)
         
 
@@ -560,10 +579,10 @@ async def callme_command(message: types.Message) -> None:
             print("Placed call")
         else:
             # ERROR - add handling later
-            database.add_chat_to_user_history(BOT_USERNAME, user_id, 'assistant', 'Influencer: ' + "i'm having some trouble calling you right now, can you try again later?")
-            await message.reply("i'm having some trouble calling you right now, can you try again later?")
+            database.add_chat_to_user_history(influencer.bot_username, user_id, 'assistant', 'Influencer: ' + "i'm having some trouble calling you right now, can you try again later?")
+            await influencer.bot_object.send_message(chat_id= message.chat.id, text="i'm having some trouble calling you right now, can you try again later?")
     else:
-        await message.reply("you need to connect your phone number in order for me to be able to call you")
+        await influencer.bot_object.send_message(chat_id= message.chat.id, text="you need to connect your phone number in order for me to be able to call you")
 
 
 
@@ -619,14 +638,14 @@ def place_call(agent_id, phone_number, prospect_name, prospect_email, unique_id,
 
 
 
-async def handle_user_voice_note(message: types.Message) -> None:
-    transcription = await voicenoteHandler.transcribe_user_voice_note(message)
+async def handle_user_voice_note(message: types.Message, influencer : Influencer) -> None:
+    transcription = await voicenoteHandler.transcribe_user_voice_note(message, influencer.bot_object)
 
-    await handle_response(message, transcription)
+    await handle_response(message, transcription, influencer)
 
 
 
-async def handle_response(message: types.Message, voicenote_transcription=None) -> None:
+async def handle_response(message: types.Message, influencer : Influencer, voicenote_transcription=None) -> None:
     user_id = str(message.from_user.id)    
     
     # Case when user doesn't send voice - take text from Telegram's user data
@@ -639,7 +658,7 @@ async def handle_response(message: types.Message, voicenote_transcription=None) 
     # Double check if user has enough credits if voice_notes_status is set to "enabled"
     # if(context.user_data['voice_notes_status'] == "enabled"):
     # Check if user has enough credits
-    unique_id = database.get_bubble_unique_id(BOT_USERNAME, user_id)
+    unique_id = database.get_bubble_unique_id(influencer.bot_username, user_id)
 
     
     current_minutes_credits = connectBubble.get_minutes_credits(unique_id)
@@ -648,10 +667,10 @@ async def handle_response(message: types.Message, voicenote_transcription=None) 
 
     if(current_minutes_credits <= 0):
         # Send message to buy credits
-        await bot.send_message(chat_id=message.chat.id, text="You are out of minutes for your account. Purchase more below in order to continue.")
-        await paymentstest.purchase(message, bot)
+        await influencer.bot_object.send_message(chat_id=message.chat.id, text="You are out of minutes for your account. Purchase more below in order to continue.")
+        await paymentstest.purchase(message, influencer)
     else:
-        await voicenoteHandler.voice_note_creator(message, text, unique_id)
+        await voicenoteHandler.voice_note_creator(message, text, unique_id, influencer)
 
 
 
@@ -666,7 +685,7 @@ async def handle_response(message: types.Message, voicenote_transcription=None) 
 
 
 
-async def handle_command(message: types.Message):
+async def handle_command(message: types.Message, bot : Bot):
     print("Handling commands")
     # Example: Responding to the /start command
     if message.text == '/start':
@@ -675,22 +694,43 @@ async def handle_command(message: types.Message):
         await bot.send_message(chat_id=message.chat.id, text="How can I assist you?")
 
 
-async def handle_message(message: types.Message):
+async def handle_message(message: types.Message, bot : Bot):
     # Echo the received text message
     await bot.send_message(chat_id=message.chat.id, text=message.text)
 
+async def change_stage_response_engn(agent_username, user_id):
+    await asyncio.sleep(15)
+    database.update_state(agent_username, user_id, "in_intro_call")
 
+async def send_first_followup_msg(user_id, influencer : Influencer):
+
+    await asyncio.sleep(INTRO_CALL_LENGTH)
+    state = database.get_state(influencer.bot_username, user_id)
+
+    if state != "response_engine":
+        await influencer.bot_object.send_message(chat_id=user_id, text= "Hey it was great talking to you!", parse_mode='Markdown')
+        await influencer.bot_object.send_message(chat_id=user_id, text= "I'm always down to have some fun over chat, but I'd love to call you again if you buy some credits...", parse_mode='Markdown')
+        await influencer.bot_object.send_message(chat_id=user_id, text= "Soo what are you up to now?", parse_mode='Markdown')
+
+
+
+        database.add_chat_to_user_history(influencer.bot_username, user_id, 'assistant', 'Influencer: ' + "Soo what are you up to now?")
+
+        database.update_state(influencer.bot_username, user_id, "response_engine")
+
+        
+    pass
 
 
 
 
 
 app = web.Application()
-app.router.add_post('/webhook', webhook_entry)
-app.router.add_get('/webhook', webhook_entry)  # For simple GET verification
+app.router.add_post('/webhook/{slug}', webhook_entry)
+app.router.add_get('/webhook/{slug}', webhook_entry)  # For simple GET verification
 
 if __name__ == '__main__':
-    web.run_app(app, port=8080)
+    web.run_app(app, port=5000)
 
 
 # https://api.telegram.org/bot6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk/setWebhook?url=https://2f3c-2607-fea8-34dd-4f90-35a6-2d3b-2dad-fef2.ngrok-free.app/webhook
