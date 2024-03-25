@@ -198,6 +198,7 @@ def update_subscription(user_uid, telegram_user_id, influencer_uid, subscription
     # Attempt to find the existing subscription for the specific influencer
     existing_sub_id = bubbledb.get_subscription_id(user_uid, influencer_uid)
 
+    response = True
     if existing_sub_id:
         print(f"Existing subscription found: {existing_sub_id}. Updating with new data...")
 
@@ -211,7 +212,6 @@ def update_subscription(user_uid, telegram_user_id, influencer_uid, subscription
         }
 
         # Update each field in the subscription
-        response = True
         for field, value in updated_data.items():
             update_response = bubbledb.update_database(existing_sub_id, "Subscription", field, value)
             
@@ -223,7 +223,8 @@ def update_subscription(user_uid, telegram_user_id, influencer_uid, subscription
         if not response:
             print("Failed to update subscription in Bubble.")
             return False
-        
+    
+
     # Prepare the data for new subscription history entry
     subscription_history_data = {
         "influencer": influencer_uid,
@@ -247,7 +248,15 @@ def update_subscription(user_uid, telegram_user_id, influencer_uid, subscription
     append_response = bubbledb.add_to_database_list(user_uid, "User", "subscription_history", [new_history_id])
     if append_response == 204:
         print("Subscription history updated successfully.")
+
+        credits_update_response = update_user_credits(user_uid, 50)
+        if not credits_update_response:
+            print("Failed to update user's credits.")
+            return False
+
+        print("Subscription and credits updated successfully.")
         return True
+
     else:
         print("Failed to update subscription history.")
         return False
@@ -509,7 +518,6 @@ def update_minutes_credits(unique_id, num_minutes, amount_paid, charge_id, influ
 
 
 
-
 def deduct_minutes_credits(unique_id, num_credits):
     data_type = "User"  
     field_name = "credits"
@@ -528,6 +536,29 @@ def deduct_minutes_credits(unique_id, num_credits):
         print(f"Failed to update user's credits. Response: {response}")
 
 
+
+def update_user_credits(unique_id, additional_credits):
+    data_type = "User"
+    field_name = "credits"
+
+    # Retrieve the current credits
+    current_credits = get_minutes_credits(unique_id)
+    if current_credits is None:
+        print("Failed to retrieve current credits.")
+        return False
+
+    # Calculate new credits
+    new_credits = current_credits + additional_credits
+    data_for_credits_update = {field_name: new_credits}
+
+    # Update the credits in Bubble
+    response_credits_update = bubbledb.update_data_fields(unique_id, data_type, data_for_credits_update)
+    if response_credits_update != 204:
+        print("Failed to update user's credits.")
+        return False
+
+    print("User's credits updated successfully.")
+    return True
 
 
 
