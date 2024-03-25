@@ -1,78 +1,60 @@
 {
-    "veronica_avluv" : {
-
-        "ai_name" : "VeronicaAI",
-        "bot_username" : "@veronicaavluvaibot",
-        "real_name" : "Veronica Avluv",
-        "voice_id" : "WaE9Pp8WJdD8YhQrF8hq",
-        "voice_settings" : {},
-        "token" : "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk",
-        "bubble_id" : "1703781501800x144651846935042620",
-        "image_url" : "https://static.wixstatic.com/media/e1234e_36641e0f2be447bea722377cd31945d3~mv2.jpg/v1/crop/x_254,y_168,w_972,h_937/fill/w_506,h_488,al_c,q_80,usm_0.66_1.00_0.01,enc_auto/IMG_20231215_134002.jpg",
-        "knowledge_bases" : [
+    "veronica_avluv": {
+        "ai_name": "VeronicaAI",
+        "bot_username": "@veronicaavluvaibot",
+        "real_name": "Veronica Avluv",
+        "voice_id": "WaE9Pp8WJdD8YhQrF8hq",
+        "voice_settings": {},
+        "token": "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk",
+        "bubble_id": "1703781501800x144651846935042620",
+        "image_url": "https://static.wixstatic.com/media/e1234e_36641e0f2be447bea722377cd31945d3~mv2.jpg/v1/crop/x_254,y_168,w_972,h_937/fill/w_506,h_488,al_c,q_80,usm_0.66_1.00_0.01,enc_auto/IMG_20231215_134002.jpg",
+        "knowledge_bases": [
             {
-                "url" : "https://docs.google.com/spreadsheets/d/1f4awYjjNY28nSd7v-niigCBkO7jI6HMagvX7Fa6_Seg/view?usp=sharing",
-                "type" : "text"
+                "url": "https://docs.google.com/spreadsheets/d/1f4awYjjNY28nSd7v-niigCBkO7jI6HMagvX7Fa6_Seg/view?usp=sharing",
+                "type": "text"
             },
             {
-
-                "url" : "https://docs.google.com/spreadsheets/d/1g4vhty-OIhHhaVgEFgcnWYx-MRxpcuul1eZEC7MjvdQ/view?usp=sharing",
-                "type" : "qa"
-
+                "url": "https://docs.google.com/spreadsheets/d/1g4vhty-OIhHhaVgEFgcnWYx-MRxpcuul1eZEC7MjvdQ/view?usp=sharing",
+                "type": "qa"
             }
-                
         ]
     },
-    "jasmine_larsen" : {
-
-        "ai_name" : "JasmineAI",
-        "bot_username" : "@jasminelarsenaibot",
-        "real_name" : "Jasmine Larsen",
-        "voice_id" : "eHSdNCwwrtpeDrvvetWf",
-        "voice_settings" : {
-
-            "similarity_boost" : 0.85,
-            "stability" : 0.70
-    
+    "jasmine_larsen": {
+        "ai_name": "JasmineAI",
+        "bot_username": "@jasminelarsenbot",
+        "real_name": "Jasmine Larsen",
+        "voice_id": "eHSdNCwwrtpeDrvvetWf",
+        "voice_settings": {
+            "similarity_boost": 0.85,
+            "stability": 0.70
         },
-        "token" : "",
-        "bubble_id" : "1705107640745x918543186197700100",
-        "image_url" : "",
-        "knowledge_bases" : [
+        "token": "6576254410:AAEnwIZDviJz7KI7bW7STOJe63uGGrwCKKo",
+        "bubble_id": "1705107640745x918543186197700100",
+        "image_url": "",
+        "knowledge_bases": [
             {
-
-                "url" : "https://docs.google.com/spreadsheets/d/1CbmbUpBQqH80_ExQHz8NJwYGOMwNH5od3aiNU1BivZo/view?usp=sharing",
-                "type" : "qa"
-
+                "url": "https://docs.google.com/spreadsheets/d/1CbmbUpBQqH80_ExQHz8NJwYGOMwNH5od3aiNU1BivZo/view?usp=sharing",
+                "type": "qa"
             }
         ]
-
     },
-    "ani_blackfox" : {
-
-        "ai_name" : "BlackfoxAI",
-        "bot_username" : "@aniblackfoxaibot",
-        "real_name" : "Ani Blackfox",
-        "voice_id" : "SkNrSmbqF3xsQmt0uRAM",
-        "voice_settings" : {
-
-            "similarity_boost" : 0.85,
-            "stability" : 0.4
-    
+    "ani_blackfox": {
+        "ai_name": "BlackfoxAI",
+        "bot_username": "@blackfoxaibot",
+        "real_name": "Ani Blackfox",
+        "voice_id": "SkNrSmbqF3xsQmt0uRAM",
+        "voice_settings": {
+            "similarity_boost": 0.85,
+            "stability": 0.4
         },
-        "token" : "",
-        "bubble_id" : "1705800943639x643582860911894800",
-        "image_url" : "",
-        "knowledge_bases" : [
+        "token": "6768737933:AAGysmjvx8724OvWyrxLu3JJVRnDzT5SH4s",
+        "bubble_id": "1705800943639x643582860911894800",
+        "image_url": "",
+        "knowledge_bases": [
             {
-                "type" : "qa",
-                "url" : "https://docs.google.com/spreadsheets/d/1J84I7wwZWsKtIOSU1YhNDXbUfw5TZYQI5Q7thi6xEEo/view?usp=sharing"
-
+                "type": "qa",
+                "url": "https://docs.google.com/spreadsheets/d/1J84I7wwZWsKtIOSU1YhNDXbUfw5TZYQI5Q7thi6xEEo/view?usp=sharing"
             }
-
         ]
-
     }
-    
-
 }
