@@ -265,7 +265,7 @@ async def verify_number(message: types.Message, phone_number: str) -> None:
 
     if(verification_status == True):
         return
-
+    
     # Assuming loginuser.generate_random_number() and loginuser.send_verification_code() are defined elsewhere
     verification_code = loginuser.generate_random_number()
     
@@ -693,4 +693,4 @@ if __name__ == '__main__':
     web.run_app(app, port=8080)
 
 
-# https://api.telegram.org/bot6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk/setWebhook?url=https://f2a5-2607-fea8-34dd-4f90-d3a-4bf1-b225-d1e2.ngrok-free.app/webhook
+# https://api.telegram.org/bot6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk/setWebhook?url=https://2f3c-2607-fea8-34dd-4f90-35a6-2d3b-2dad-fef2.ngrok-free.app/webhook
