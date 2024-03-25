@@ -3,8 +3,6 @@ import json
 # Returns Json File of Data for the Data Entry with the Uniuqe ID
 api_key = "7bfc4e7b2cfbd0475b1ec923a0ea4c99"
 
-from CONSTANTS import TOKEN, BOT_USERNAME, AGENT_ID, INFLUENCER_UID, AI_NAME
-
 
 
 DATA_URL = "https://app.tryinfluencerai.com/api/1.1/obj/"

@@ -13,6 +13,11 @@ import csv
 
 from typing import List, Callable
 
+from influencer_data import Influencer
+
+KB_PATH_TEMPLATE = "./influencer_files/{agent_id}/knowledge_bases"
+
+
 
 # def load_qa_csv_faq(csv_files: List[str]):
 #     faq_vectors = []
@@ -30,6 +35,8 @@ from typing import List, Callable
 #             faq_vectors.append(faq_vector)
 
 #     return faq_vectors
+
+
 
 def load_qa_csv_faq(csv_urls: List[str]):
     faq_vectors = []
@@ -155,20 +162,25 @@ def load_knowledge_base(index_name):
         return db
     
     except:
-        return False
+        return None
 
 
+def create_influencer_kbs():
 
+
+    for agent_id, influencer in Influencer._registry.items():
+        gdrive_urls = {"qa" : [], "text" : []}
+        knowledge_bases : list = influencer.knowledge_bases
+        for kb_data in knowledge_bases:
+            gdrive_urls[kb_data["type"]].append(kb_data["url"])
+        
+        if gdrive_urls["text"]:
+            create_answers_knowledge_base(gdrive_urls["text"], KB_PATH_TEMPLATE.format(agent_id = agent_id) + "/text")
+        if gdrive_urls["qa"]:
+            create_qa_knowledge_base(gdrive_urls["qa"], KB_PATH_TEMPLATE.format(agent_id = agent_id) + "/qa")
 
 if __name__ == "__main__":
-    # Build Veronica Knowledge Base:
-    gdrive_urls = ["https://docs.google.com/spreadsheets/d/1f4awYjjNY28nSd7v-niigCBkO7jI6HMagvX7Fa6_Seg/view?usp=sharing"]
-    knowledge_base = create_answers_knowledge_base(gdrive_urls, "veronica_kb")
-
-
-    # Build Texting Performance Base:
-    gdrive_urls = ["https://docs.google.com/spreadsheets/d/1g4vhty-OIhHhaVgEFgcnWYx-MRxpcuul1eZEC7MjvdQ/view?usp=sharing"]
-    knowledge_base = create_qa_knowledge_base(gdrive_urls, "texting_performance")
+    create_influencer_kbs()
 
 
 # knowledge_base_info = retrieve_info(knowledge_base, "milk", 3)

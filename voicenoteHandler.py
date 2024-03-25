@@ -22,12 +22,7 @@ import response_engine
 import database
 import elevenlabsTTS
 import connectBubble
-import bot
-
-from CONSTANTS import *
-
-
-bot = Bot(TOKEN)
+from influencer_data import Influencer
 
 async def download_file(url: str, path: str):
     response = requests.get(url)
@@ -73,10 +68,10 @@ def get_audio_duration(audio_file_path):
 
 
 
-async def send_voice_note(message: types.Message, ai_response: str, bubble_unique_id:str) -> None:
+async def send_voice_note(message: types.Message, ai_response: str, unique_id : str, influencer : Influencer) -> None:
     # This will send the 'recording audio' action to the chat
     chat_id = message.chat.id
-    action_url = f"https://api.telegram.org/bot{TOKEN}/sendChatAction"
+    action_url = f"https://api.telegram.org/bot{influencer.telegram_token}/sendChatAction"
     action_data = {
         'chat_id': chat_id,
         'action': 'record_voice'
@@ -86,7 +81,7 @@ async def send_voice_note(message: types.Message, ai_response: str, bubble_uniqu
 
 
     # Generate audio from the transcribed text
-    audio_bytes = elevenlabsTTS.get_completed_audio(ai_response)
+    audio_bytes = elevenlabsTTS.get_completed_audio(ai_response, influencer)
 
     # Save the generated audio to a file
     audio_file_path = f"tts_output_{message.message_id}.mp3"
@@ -94,7 +89,7 @@ async def send_voice_note(message: types.Message, ai_response: str, bubble_uniqu
         audio_file.write(audio_bytes)
 
     # voice = InputFile(audio_file_path)
-    url = f"https://api.telegram.org/bot{TOKEN}/sendVoice"
+    url = f"https://api.telegram.org/bot{influencer.telegram_token}/sendVoice"
 
     # Open the audio file in binary mode
     with open(audio_file_path, 'rb') as audio:
@@ -113,7 +108,7 @@ async def send_voice_note(message: types.Message, ai_response: str, bubble_uniqu
     
     # Check if type of duration_minutes is valid, and then remove the credits from the user
     if (isinstance(duration_minutes, float) or isinstance(duration_minutes, int)):
-        connectBubble.deduct_minutes_credits(bubble_unique_id, -duration_minutes)
+        connectBubble.deduct_minutes_credits(unique_id, -duration_minutes)
 
     # Delete the generated audio file after sending it
     os.remove(audio_file_path)
@@ -121,7 +116,7 @@ async def send_voice_note(message: types.Message, ai_response: str, bubble_uniqu
 
 
 
-async def transcribe_user_voice_note(message: types.Message) -> str:
+async def transcribe_user_voice_note(message: types.Message, bot : Bot) -> str:
     user_id = str(message.from_user.id)
     
     voice_note = message.voice
@@ -140,26 +135,28 @@ async def transcribe_user_voice_note(message: types.Message) -> str:
     return transcription
 
 
-async def voice_note_creator(message: types.Message, text:str, bubble_unique_id:str) -> None:
+async def voice_note_creator(message: types.Message, text:str, unique_id : str, influencer : Influencer) -> None:
     user_id = str(message.from_user.id)
 
+
+
     # Add the current message to the user's chat history
-    database.add_chat_to_user_history(BOT_USERNAME, user_id, "user", "Fan: " + text)
+    database.add_chat_to_user_history(influencer.bot_username, user_id, "user", "Fan: " + text)
 
     # Retrieve the updated chat history
-    chat_history = database.get_user_chat_history(BOT_USERNAME, user_id)
+    chat_history = database.get_user_chat_history(influencer.bot_username, user_id)
     # Format the chat history for display
     parsed_chat_history = response_engine.parse_chat_history(chat_history)
 
 
     # Generate response using Response Engine
-    ai_response = response_engine.voicenotes_create_response(parsed_chat_history, text, message)
+    ai_response = response_engine.voicenotes_create_response(parsed_chat_history, text, message, influencer)
     print("ai_response: ", ai_response)
 
     ## Add the AI response to user's chat history
-    database.add_chat_to_user_history(BOT_USERNAME, user_id, "agent", "Girlfriend: " + ai_response)
+    database.add_chat_to_user_history(influencer.bot_username, user_id, "agent", "Girlfriend: " + ai_response)
 
-    await send_voice_note(message, ai_response, bubble_unique_id)
+    await send_voice_note(message, ai_response, unique_id, influencer)
 
 
 
