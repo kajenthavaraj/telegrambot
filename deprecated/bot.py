@@ -37,11 +37,13 @@ bot = Bot(TOKEN)
 
 ##### Commands - need to add to bot father #####
 '''
+help - Display help message
 callme - Have VeronicaAI call your phone number
 deposit - Add credits to your account or subscribe
 balance - Display your credits balance
 feedback - Provide feedback to improve the bot
-help - Display help message
+subscribe - Start a subscription
+manage - Manage your subscription
 '''
 
 
