@@ -207,7 +207,8 @@ Next billing date: {next_billing_date}."""
             return '', 200
         
         # Fetch next billing date from invoice
-        next_billing_date = datetime.utcfromtimestamp(session['next_payment_attempt']).strftime('%Y-%m-%d')
+        next_billing_timestamp = session.get('period_end')
+        next_billing_date = datetime.utcfromtimestamp(next_billing_timestamp).strftime('%Y-%m-%d') if next_billing_timestamp else "N/A"
 
         # Update user's credits by adding 50 credits for the renewal
         credits_update_response = update_user_credits(bubble_unique_id, 50)
