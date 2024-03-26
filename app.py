@@ -182,10 +182,14 @@ Next billing date: {next_billing_date}."""
     # Handle successful invoice payment (renewal)
     elif event['type'] == 'invoice.payment_succeeded':
         session = event['data']['object']
-        print("This is session info", session)
-        
-        metadata = session.get('metadata', {})
-        print("This is metadata info:", metadata)
+
+        # Accessing the subscription details from the event object
+        subscription_details = session.get('subscription_details', {})
+
+        # Accessing metadata from subscription details
+        metadata = subscription_details.get('metadata', {})
+        print("This is the correct metadata info:", metadata)
+
         telegram_user_id = metadata.get('telegram_user_id')
         influencer_id = metadata.get('influencer_id')
         influencer_obj : Influencer = Influencer._registry[influencer_id]
@@ -218,9 +222,15 @@ Next billing date: {next_billing_date}."""
 
     elif event['type'] == 'invoice.payment_failed':
         invoice = event['data']['object']
-        metadata = invoice.get('metadata', {})
-        telegram_user_id = metadata.get('telegram_user_id')
 
+        # Accessing the subscription details from the event object
+        subscription_details = invoice.get('subscription_details', {})
+
+        # Accessing metadata from subscription details
+        metadata = subscription_details.get('metadata', {})
+        print("This is the correct metadata info:", metadata)
+
+        telegram_user_id = metadata.get('telegram_user_id')
         influencer_id = metadata.get('influencer_id')
         influencer_obj : Influencer = Influencer._registry[influencer_id]
 
@@ -234,7 +244,14 @@ Next billing date: {next_billing_date}."""
 
     elif event['type'] == 'invoice.upcoming':
         invoice = event['data']['object']
-        metadata = invoice.get('metadata', {})
+
+        # Accessing the subscription details from the event object
+        subscription_details = invoice.get('subscription_details', {})
+
+        # Accessing metadata from subscription details
+        metadata = subscription_details.get('metadata', {})
+        print("This is the correct metadata info:", metadata)
+
         telegram_user_id = metadata.get('telegram_user_id')
         influencer_id = metadata.get('influencer_id')
         amount_due = invoice.get('amount_due') / 100  # Convert to dollars
