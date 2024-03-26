@@ -2,7 +2,7 @@ from influencer_data import Influencer
 import requests
 
 # Put your NGROK url here, will replace with heroku url later
-DOMAIN = "https://ef7c-142-114-205-133.ngrok-free.app"
+DOMAIN = "https://4ff9-138-51-65-10.ngrok-free.app"
 SET_WEBHOOK_URL_TEMPLATE = "https://api.telegram.org/bot{token}/setWebhook?url={domain}/webhook/{influencer_id}"
 
 

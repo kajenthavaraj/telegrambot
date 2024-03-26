@@ -2,7 +2,7 @@ from flask import Flask, request, abort
 import stripe
 import requests
 from typing import Final
-from connectBubble import update_minutes_credits, update_subscription, check_user_subscription
+from connectBubble import update_minutes_credits, update_subscription, check_user_subscription, update_user_credits
 from database import get_bubble_unique_id
 import CONSTANTS
 import logging
@@ -180,6 +180,13 @@ Next billing date: {next_billing_date}."""
         # Fetch next billing date from invoice
         next_billing_timestamp = invoice.get('next_payment_attempt')
         next_billing_date = datetime.utcfromtimestamp(next_billing_timestamp).strftime('%Y-%m-%d') if next_billing_timestamp else "N/A"
+
+        # Update user's credits by adding 50 credits for the renewal
+        credits_update_response = update_user_credits(bubble_unique_id, 50)
+        if credits_update_response:
+            print("User's credits updated successfully for renewal.")
+        else:
+            print("Failed to update user's credits for renewal.")
 
         message = f"Thank you for your continued subscription. Next billing date: {next_billing_date}."
         send_telegram_message(telegram_user_id, message)
