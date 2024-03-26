@@ -51,7 +51,6 @@ def stripe_webhook():
 
         influencer_id = metadata.get('influencer_id')
         print(influencer_id)
-        print (Influencer._registry)
 
         influencer_obj : Influencer = Influencer._registry[influencer_id]
         
@@ -205,10 +204,6 @@ Next billing date: {next_billing_date}."""
             print("Bubble unique ID not found in the first if statement")
             # Handle error, maybe send a message back to user
             return '', 200
-        
-        # Fetch next billing date from invoice
-        next_billing_timestamp = session.get('period_end')
-        next_billing_date = datetime.utcfromtimestamp(next_billing_timestamp).strftime('%Y-%m-%d') if next_billing_timestamp else "N/A"
 
         # Update user's credits by adding 50 credits for the renewal
         credits_update_response = update_user_credits(bubble_unique_id, 50)
@@ -217,7 +212,7 @@ Next billing date: {next_billing_date}."""
         else:
             print("Failed to update user's credits for renewal.")
 
-        message = f"Thank you for your continued subscription. Next billing date: {next_billing_date}."
+        message = f"Your subscription has automatically been renewed!"
         send_telegram_message(telegram_user_id, message, influencer_obj)
 
     elif event['type'] == 'invoice.payment_failed':
