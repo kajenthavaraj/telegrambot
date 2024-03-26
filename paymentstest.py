@@ -69,7 +69,6 @@ stripe.api_key = 'sk_test_51IsqDJBo1ZNr3GjAvWVMXtJUnocMO3LsOBaZKJIwtKcAd6regW0Or
 
 
 
-
 async def purchase(message: types.Message, influencer : Influencer) -> None:
     user_id = str(message.from_user.id)
 
@@ -177,7 +176,7 @@ async def subscribe(message: types.Message, influencer : Influencer) -> None:
         await influencer.bot_object.send_message(chat_id=message.chat.id, text=message_text)
 
     else:
-        await send_subscription_message(message.chat.id, influencer.bot_objectt)
+        await send_subscription_message(message.chat.id, influencer.bot_object)
 
 
 
