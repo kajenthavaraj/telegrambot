@@ -69,6 +69,7 @@ stripe.api_key = 'sk_test_51IsqDJBo1ZNr3GjAvWVMXtJUnocMO3LsOBaZKJIwtKcAd6regW0Or
 
 
 
+
 async def purchase(message: types.Message, influencer : Influencer) -> None:
     user_id = str(message.from_user.id)
 
@@ -225,7 +226,6 @@ async def manage_subscription(message: types.Message, influencer : Influencer) -
     has_active_subscription, subscription_status = check_user_subscription(bubble_unique_id, influencer_UID) 
     print(f"Active subscription status: {has_active_subscription}, Status: {subscription_status}")
 
-    # if has_active_subscription:
     if has_active_subscription:
         buttons = [
             types.InlineKeyboardButton(text="Cancel Subscription", callback_data='cancel_subscription'),
@@ -507,7 +507,7 @@ async def button(callback_query: types.CallbackQuery, influencer : Influencer):
             mode='subscription',
             success_url=f'https://t.me/{bot_username_short}?start=subscription_successful',
             cancel_url=f'https://t.me/{bot_username_short}?start=subscription_canceled',
-            metadata={'telegram_user_id': user_id},
+            metadata={'telegram_user_id': user_id, "influencer_id" : influencer.agent_id},
         )
 
         payment_text = "Complete Subscription"
@@ -550,7 +550,7 @@ async def button(callback_query: types.CallbackQuery, influencer : Influencer):
                 },
                 'quantity': 1,
             }],
-            metadata={'telegram_user_id': user_id},
+            metadata={'telegram_user_id': user_id, "influencer_id" : influencer.agent_id},
             mode='payment',
             success_url=f'https://t.me/{bot_username_short}?start=payment_successful',
             cancel_url=f'https://t.me/{bot_username_short}?start=payment_canceled',
