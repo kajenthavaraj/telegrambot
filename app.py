@@ -52,7 +52,7 @@ def stripe_webhook():
         influencer_id = metadata.get('influencer_id')
         print(influencer_id)
         print (Influencer._registry)
-        
+
         influencer_obj : Influencer = Influencer._registry[influencer_id]
         
 
@@ -187,6 +187,7 @@ Next billing date: {next_billing_date}."""
         telegram_user_id = metadata.get('telegram_user_id')
         influencer_id = metadata.get('influencer_id')
         influencer_obj : Influencer = Influencer._registry[influencer_id]
+
         influencer_username = influencer_obj.bot_username
         influencer_bubbleid = influencer_obj.bubble_id
         bubble_unique_id = get_bubble_unique_id(influencer_username, telegram_user_id)
@@ -218,6 +219,9 @@ Next billing date: {next_billing_date}."""
         metadata = invoice.get('metadata', {})
         telegram_user_id = metadata.get('telegram_user_id')
 
+        influencer_id = metadata.get('influencer_id')
+        influencer_obj : Influencer = Influencer._registry[influencer_id]
+
         # Logic to handle payment failure
         attempt_count = invoice['attempt_count']
         next_payment_attempt = invoice['next_payment_attempt']
@@ -226,10 +230,32 @@ Next billing date: {next_billing_date}."""
         failure_message = f"There was an issue with the payment. Please ensure your payment details are valid and you have sufficient funds for the purchase. Attempt {attempt_count}. Next attempt on {next_payment_date}."
         send_telegram_message(telegram_user_id, failure_message, influencer_obj)
 
+    elif event['type'] == 'invoice.upcoming':
+        invoice = event['data']['object']
+        metadata = invoice.get('metadata', {})
+        telegram_user_id = metadata.get('telegram_user_id')
+        influencer_id = metadata.get('influencer_id')
+        amount_due = invoice.get('amount_due') / 100  # Convert to dollars
+        due_date = datetime.utcfromtimestamp(invoice['next_payment_attempt']).strftime('%Y-%m-%d')
+
+        try:
+            influencer_obj: Influencer = Influencer._registry[influencer_id]
+        except KeyError:
+            print(f"Influencer ID {influencer_id} not found in registry.")
+            return '', 200
+
+        # Prepare a message to notify the user about the upcoming invoice
+        upcoming_invoice_message = f"Hello, your next subscription payment of ${amount_due} is scheduled for {due_date}. Please ensure your payment method is up to date."
+        
+        # Send the notification message
+        send_telegram_message(telegram_user_id, upcoming_invoice_message, influencer_obj)
+
     elif event['type'] == 'customer.subscription.deleted':
         subscription = event['data']['object']
         metadata = subscription.get('metadata', {})
         telegram_user_id = metadata.get('telegram_user_id')
+        influencer_id = metadata.get('influencer_id')
+        influencer_obj : Influencer = Influencer._registry[influencer_id]
 
         # Logic to handle subscription cancellation after payment failures
         cancellation_message = "Your subscription has been canceled."

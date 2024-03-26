@@ -347,7 +347,23 @@ async def confirm_subscription_cancellation(callback_query: types.CallbackQuery,
         await influencer.bot_object.send_message(chat_id=callback_query.message.chat.id, text="You do not have an active subscription to cancel.")
 
 
+async def deny_subscription_cancellation(callback_query: types.CallbackQuery, influencer : Influencer):
+    user_id = str(callback_query.from_user.id)
+    influencer_id = influencer.bot_username
+    influencer_UID = influencer.bubble_id
 
+    bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
+    
+    # Fetch current subscription status
+    has_active_subscription, subscription_status = check_user_subscription(bubble_unique_id, influencer_UID)
+    print(f"Current subscription status: {has_active_subscription}, {subscription_status}")
+
+    if has_active_subscription:
+        # User has an active subscription
+        await influencer.bot_object.send_message(chat_id=callback_query.message.chat.id, text="Your subscription remains active. Thank you for staying with us.")
+    else:
+        # User does not have an active subscription
+        await influencer.bot_object.send_message(chat_id=callback_query.message.chat.id, text="You do not have an active subscription.")
 
 
 
@@ -531,9 +547,8 @@ async def button(callback_query: types.CallbackQuery, influencer : Influencer):
         await confirm_subscription_cancellation(callback_query, influencer)
 
     elif callback_query.data == 'keep_subscription':
-        # await callback_query.message.edit_text("Your subscription remains active. Thank you for staying with us.")
-        #await influencer.bot_object.send_message(chat_id=callback_query.message.chat.id, text="Your subscription remains active. Thank you for staying with us.")
-        await confirm_subscription_cancellation(callback_query, influencer)
+        await deny_subscription_cancellation(callback_query, influencer)
+        
 
     elif callback_query.data == 'check_account':
         await balance_command(callback_query, influencer)
