@@ -50,7 +50,10 @@ def stripe_webhook():
         telegram_user_id = metadata.get('telegram_user_id')
 
         influencer_id = metadata.get('influencer_id')
+        print(influencer_id)
+        
         influencer_obj : Influencer = Influencer._registry[influencer_id]
+        
 
         influencer_username = influencer_obj.bot_username
         influencer_bubbleid = influencer_obj.bubble_id
@@ -181,8 +184,8 @@ Next billing date: {next_billing_date}."""
         
         metadata = session.get('metadata', {})
         telegram_user_id = metadata.get('telegram_user_id')
-        influencer_username = CONSTANTS.BOT_USERNAME
-        influencer_bubbleid = CONSTANTS.influencer_bubbleid 
+        influencer_username = influencer_obj.bot_username
+        influencer_bubbleid = influencer_obj.bubble_id
         bubble_unique_id = get_bubble_unique_id(influencer_username, telegram_user_id)
         print("the influencer id is: ", influencer_username)
         print ("the bubble unique id is: ", bubble_unique_id, "the telegram user id is: ", telegram_user_id)
