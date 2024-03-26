@@ -226,7 +226,7 @@ async def manage_subscription(message: types.Message, influencer : Influencer) -
     print(f"Active subscription status: {has_active_subscription}, Status: {subscription_status}")
 
     # if has_active_subscription:
-    if True:
+    if has_active_subscription:
         buttons = [
             types.InlineKeyboardButton(text="Cancel Subscription", callback_data='cancel_subscription'),
             types.InlineKeyboardButton(text="Check Balance and Subscription", callback_data='check_account'),
