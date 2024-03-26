@@ -8,6 +8,7 @@ import CONSTANTS
 import logging
 from datetime import datetime
 from CONSTANTS import *
+from influencer_data import Influencer
 
 
 # Flask app setup
@@ -47,10 +48,13 @@ def stripe_webhook():
         
         metadata = session.get('metadata', {})
         telegram_user_id = metadata.get('telegram_user_id')
-        influencer_id = CONSTANTS.BOT_USERNAME
-        influencer_UID = CONSTANTS.INFLUENCER_UID 
-        bubble_unique_id = get_bubble_unique_id(influencer_id, telegram_user_id)
-        print("the influencer id is: ", influencer_id)
+
+        influencer_id = metadata.get('influencer_id')
+        influencer_obj : Influencer = Influencer._registry[influencer_id]
+
+        influencer_username = influencer_obj.bot_username
+        influencer_bubbleid = influencer_obj.bubble_id
+        bubble_unique_id = get_bubble_unique_id(influencer_username, telegram_user_id)
         print ("the bubble unique id is: ", bubble_unique_id, "the telegram user id is: ", telegram_user_id)
         #bubble_unique_id = '1705089991492x506710590267403400'
 
@@ -107,7 +111,7 @@ def stripe_webhook():
 
                 
             # Check if a subscription already exists for the user
-            has_active_subscription, subscription_status = check_user_subscription(bubble_unique_id, influencer_UID)
+            has_active_subscription, subscription_status = check_user_subscription(bubble_unique_id, influencer_bubbleid)
 
             if has_active_subscription and subscription_status == "complete":
                 print("User already has an active subscription.")
@@ -120,9 +124,9 @@ def stripe_webhook():
 
             else:
                 # Add the new subscription to Bubble
-                print("Influencer: ", influencer_UID, " bubble unique id: ", bubble_unique_id)
+                print("Influencer: ", influencer_bubbleid, " bubble unique id: ", bubble_unique_id)
                 success = update_subscription(
-                    bubble_unique_id, telegram_user_id, influencer_UID, stripe_subscription_id,
+                    bubble_unique_id, telegram_user_id, influencer_bubbleid, stripe_subscription_id,
                     subscription_plan, status, last_billing_date, next_billing_date, amount_paid
                 )
 
@@ -135,13 +139,13 @@ Next billing date: {next_billing_date}."""
                     
                     
                     # Now you can update the credits in Bubble using this unique ID
-                    success = update_minutes_credits(bubble_unique_id, subscription_credits, amount_paid, stripe_subscription_id, influencer_UID, status)
+                    success = update_minutes_credits(bubble_unique_id, subscription_credits, amount_paid, stripe_subscription_id, influencer_bubbleid, status)
 
                 else:
                     print("Failed to add subscription")
                     message = "Failed to add subscription. Please contact support."
 
-            send_telegram_message(telegram_user_id, message)
+            send_telegram_message(telegram_user_id, message, influencer_obj)
         
         else:
             if telegram_user_id and bubble_unique_id:
@@ -151,7 +155,7 @@ Next billing date: {next_billing_date}."""
 
                 charge_id = session.get('id')  # Assuming the charge ID is stored in the session object
                 print("The charge id is: ", charge_id)
-                influencer_attribution = influencer_UID
+                influencer_attribution = influencer_bubbleid
                 paid_status = "Paid" 
 
                 # Now you can update the credits in Bubble using this unique ID
@@ -162,23 +166,35 @@ Next billing date: {next_billing_date}."""
                 else:
                     message = "There was an issue processing your purchase. Please contact support."
                 
-                send_telegram_message(telegram_user_id, message)
+                send_telegram_message(telegram_user_id, message, influencer_obj)
 
             else:
                 logging.warning("Missing metadata or Bubble unique ID")
                 if telegram_user_id:
-                    send_telegram_message(telegram_user_id, "Something went wrong. Please contact support at admin@tryinfluencerai.com")
+                    send_telegram_message(telegram_user_id, "Something went wrong. Please contact support at admin@tryinfluencerai.com", influencer_obj)
                 else:
                     logging.error("Telegram user ID not found in session metadata.")
 
     # Handle successful invoice payment (renewal)
     elif event['type'] == 'invoice.payment_succeeded':
-        invoice = event['data']['object']
-        metadata = invoice.get('metadata', {})
+        session = event['data']['object']
+        
+        metadata = session.get('metadata', {})
         telegram_user_id = metadata.get('telegram_user_id')
+        influencer_username = CONSTANTS.BOT_USERNAME
+        influencer_bubbleid = CONSTANTS.influencer_bubbleid 
+        bubble_unique_id = get_bubble_unique_id(influencer_username, telegram_user_id)
+        print("the influencer id is: ", influencer_username)
+        print ("the bubble unique id is: ", bubble_unique_id, "the telegram user id is: ", telegram_user_id)
+        #bubble_unique_id = '1705089991492x506710590267403400'
+
+        if not bubble_unique_id:
+            print("Bubble unique ID not found in the first if statement")
+            # Handle error, maybe send a message back to user
+            return '', 200
         
         # Fetch next billing date from invoice
-        next_billing_timestamp = invoice.get('next_payment_attempt')
+        next_billing_timestamp = session.get('next_payment_attempt')
         next_billing_date = datetime.utcfromtimestamp(next_billing_timestamp).strftime('%Y-%m-%d') if next_billing_timestamp else "N/A"
 
         # Update user's credits by adding 50 credits for the renewal
@@ -189,7 +205,7 @@ Next billing date: {next_billing_date}."""
             print("Failed to update user's credits for renewal.")
 
         message = f"Thank you for your continued subscription. Next billing date: {next_billing_date}."
-        send_telegram_message(telegram_user_id, message)
+        send_telegram_message(telegram_user_id, message, influencer_obj)
 
     elif event['type'] == 'invoice.payment_failed':
         invoice = event['data']['object']
@@ -202,7 +218,7 @@ Next billing date: {next_billing_date}."""
         next_payment_date = datetime.utcfromtimestamp(next_payment_attempt).strftime('%Y-%m-%d') if next_payment_attempt else "N/A"
 
         failure_message = f"There was an issue with the payment. Please ensure your payment details are valid and you have sufficient funds for the purchase. Attempt {attempt_count}. Next attempt on {next_payment_date}."
-        send_telegram_message(telegram_user_id, failure_message)
+        send_telegram_message(telegram_user_id, failure_message, influencer_obj)
 
     elif event['type'] == 'customer.subscription.deleted':
         subscription = event['data']['object']
@@ -211,13 +227,13 @@ Next billing date: {next_billing_date}."""
 
         # Logic to handle subscription cancellation after payment failures
         cancellation_message = "Your subscription has been canceled."
-        send_telegram_message(telegram_user_id, cancellation_message)
+        send_telegram_message(telegram_user_id, cancellation_message, influencer_obj)
     
     return '', 200
     
 
-def send_telegram_message(telegram_user_id, message):
-    send_url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+def send_telegram_message(telegram_user_id, message, influencer : Influencer):
+    send_url = f"https://api.telegram.org/bot{influencer.telegram_token}/sendMessage"
     payload = {
         "chat_id": telegram_user_id,
         "text": message
