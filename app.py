@@ -87,8 +87,10 @@ def stripe_webhook():
                 subscription_credits = 50
             elif amount_paid == '249.00':
                 subscription_plan = 'Yearly'
+                subscription_credits = 600
             else:
                 subscription_plan = 'Unknown Plan'
+                subscription_credits = 0
 
             status = subscription.get('status')
 
@@ -133,8 +135,6 @@ def stripe_webhook():
                     bubble_unique_id, telegram_user_id, influencer_bubbleid, stripe_subscription_id,
                     subscription_plan, status, last_billing_date, next_billing_date, amount_paid
                 )
-
-                # ADD SOME CODE HERE FOR APPENDING THE PAYMENT DETAILS
 
                 if success:
                     print(f"Subscription {stripe_subscription_id} added successfully")
