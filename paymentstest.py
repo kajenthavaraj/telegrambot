@@ -316,30 +316,34 @@ async def confirm_subscription_cancellation(callback_query: types.CallbackQuery,
     influencer_UID = influencer.bubble_id
 
     bubble_unique_id = get_bubble_unique_id(influencer_id, user_id)
+    
 
-    print("going to try and get user subscription now")
-    # Using the get_user_subscription function to directly retrieve the Stripe subscription ID
-    stripe_subscription_id = get_user_subscription(bubble_unique_id, influencer_UID)
-    print("stripe subscriptin id after the function is called: ", stripe_subscription_id)
+    # Fetch current subscription status
+    has_active_subscription, subscription_status = check_user_subscription(bubble_unique_id, influencer_UID)
+    print(f"Current subscription status: {has_active_subscription}, {subscription_status}")
 
-    if stripe_subscription_id:
+    if has_active_subscription:
         try:
-            # Cancel the subscription with Stripe
-            stripe.Subscription.delete(stripe_subscription_id)
-            
-            # Update the subscription status in your database
+            # Cancel the subscription with Stripe if it's active
+            stripe_subscription_id = get_user_subscription(bubble_unique_id, influencer_UID)
+            if stripe_subscription_id:
+                stripe.Subscription.delete(stripe_subscription_id)
+
+            # Update the subscription status in your database to 'cancelled'
             successful_update = update_subscription(user_uid=bubble_unique_id, telegram_user_id=user_id, influencer_uid=influencer_UID, subscription_ID=stripe_subscription_id, subscription_plan=None, status="cancelled", last_billing_date=None, next_billing_date=None, amount_paid=None)
             if successful_update:
-                # await callback_query.message.edit_text("Your subscription has been successfully cancelled.")
                 await influencer.bot_object.send_message(chat_id=callback_query.message.chat.id, text="Your subscription has been successfully cancelled.")
             else:
-                raise Exception("Failed to update Bubble database.")
+                raise Exception("Failed to update subscription status in the database.")
+
         except Exception as e:
-            print(f"Error cancelling subscription with Stripe: {e}")
-            # await callback_query.message.edit_text("Failed to cancel the subscription. Please contact support.")
+            print(f"Error handling subscription cancellation: {e}")
             await influencer.bot_object.send_message(chat_id=callback_query.message.chat.id, text="Failed to cancel the subscription. Please contact support.")
+    elif subscription_status == "cancelled":
+        # Handle case where subscription is already cancelled
+        await influencer.bot_object.send_message(chat_id=callback_query.message.chat.id, text="Your subscription is already cancelled.")
     else:
-        # await callback_query.message.edit_text("You do not have an active subscription to cancel.")
+        # Handle case where there is no subscription to cancel
         await influencer.bot_object.send_message(chat_id=callback_query.message.chat.id, text="You do not have an active subscription to cancel.")
 
 
@@ -528,7 +532,8 @@ async def button(callback_query: types.CallbackQuery, influencer : Influencer):
 
     elif callback_query.data == 'keep_subscription':
         # await callback_query.message.edit_text("Your subscription remains active. Thank you for staying with us.")
-        await influencer.bot_object.send_message(chat_id=callback_query.message.chat.id, text="Your subscription remains active. Thank you for staying with us.")
+        #await influencer.bot_object.send_message(chat_id=callback_query.message.chat.id, text="Your subscription remains active. Thank you for staying with us.")
+        await confirm_subscription_cancellation(callback_query, influencer)
 
     elif callback_query.data == 'check_account':
         await balance_command(callback_query, influencer)

@@ -224,6 +224,11 @@ def update_subscription(user_uid, telegram_user_id, influencer_uid, subscription
             print("Failed to update subscription in Bubble.")
             return False
     
+    if status in ["renewed", "complete"]:
+        credits_update_response = update_user_credits(user_uid, 50)
+        if not credits_update_response:
+            print("Failed to update user's credits.")
+            return False
 
     # Prepare the data for new subscription history entry
     subscription_history_data = {
@@ -248,13 +253,6 @@ def update_subscription(user_uid, telegram_user_id, influencer_uid, subscription
     append_response = bubbledb.add_to_database_list(user_uid, "User", "subscription_history", [new_history_id])
     if append_response == 204:
         print("Subscription history updated successfully.")
-
-        credits_update_response = update_user_credits(user_uid, 50)
-        if not credits_update_response:
-            print("Failed to update user's credits.")
-            return False
-
-        print("Subscription and credits updated successfully.")
         return True
 
     else:
