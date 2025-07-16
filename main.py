@@ -254,13 +254,13 @@ async def awaiting_email(message: types.Message, influencer : Influencer):
         database.store_user_email(bot_username, user_id, user_email)
 
         # After email is received and validated, ask for the phone number
-        message_text = '''Thank you for sharing your email honey.
+        message_text = '''Thank you for sharing your email.
 ☒ Email
 ☐ Phone number
 
 Now, could I please get your phone number? Just press the button below for me okay?
 
-By sharing your email and phone number, you agree to our Terms of Service (https://veronica.tryinfluencerai.com/terms-and-conditions) and have read and acknowledged the Privacy Policy (https://veronica.tryinfluencerai.com/privacy)
+By sharing your email and phone number, you agree to our Terms of Service (https://kajen87.wixsite.com/website-3/terms-and-conditions) and have read and acknowledged the Privacy Policy (https://kajen87.wixsite.com/website-3/privacy)
 '''
 
         # Custom keyboard to request contact
@@ -454,7 +454,7 @@ async def intro_user(message: types.Message, influencer : Influencer):
 
 I can send you voice notes, text you picutres, and even be able to call you.
 
-To start a call enter /callme and I'll call the phone number you have with your account. Remember, I can get extra dirty on call ;) (come and find out yourself).
+To start a call enter /callme and I'll call the phone number you have with your account. Remember, I can get extra explicit on call ;) (come and find out yourself).
 
 You have 5 free credits. 
 To buy more credits or subscribe just enter /deposit
