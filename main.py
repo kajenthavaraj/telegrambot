@@ -25,6 +25,7 @@ import math
 
 from CONSTANTS import *
 from influencer_data import Influencer, load_influencers
+from config import validate_config
 
 # Telegram bot states
     # awaiting_email
@@ -742,6 +743,8 @@ app.router.add_post('/webhook/{slug}', webhook_entry)
 app.router.add_get('/webhook/{slug}', webhook_entry)  # For simple GET verification
 
 if __name__ == '__main__':
+    # Validate configuration before starting the app
+    validate_config()
     web.run_app(app, port=8080)
 
 

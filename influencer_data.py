@@ -3,6 +3,7 @@ from typing import ClassVar
 from bubbledb import get_data_field
 import json
 from aiogram import Bot
+from config import TELEGRAM_BOT_TOKENS, BUBBLE_IDS, VOICE_IDS
 
 
 MAIN_PROMPT_PATH = "./influencer_files/{agent_id}/main_prompt.txt"
@@ -61,17 +62,22 @@ def load_influencers():
     
     for agent_id, data in influencer_data_map.items():
         try:
+            # Get values from environment variables or fallback to JSON data
+            token = TELEGRAM_BOT_TOKENS.get(agent_id, data.get("token"))
+            bubble_id = BUBBLE_IDS.get(agent_id, data.get("bubble_id"))
+            voice_id = VOICE_IDS.get(agent_id, data.get("voice_id"))
+            
             Influencer(agent_id, 
                        data["ai_name"], 
                        data["bot_username"], 
                        data["real_name"], 
-                       data["voice_id"], 
+                       voice_id, 
                        data.get("voice_settings", {}), 
-                       data["token"],
-                       data["bubble_id"], 
-                       float(get_data_field(data["bubble_id"], "Influencer", "cost_per_min")),
+                       token,
+                       bubble_id, 
+                       float(get_data_field(bubble_id, "Influencer", "cost_per_min")),
                        data.get("image_url", ""),
-                       Bot(token=data["token"]),
+                       Bot(token=token),
                        data.get("knowledge_bases", [])
                        )
         except:

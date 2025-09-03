@@ -79,7 +79,7 @@ def load_generated_csv_faq(csv_urls: List[str]) -> List[str]:
 
 
 def build_knowledge_base(faq_vectors, index_name):
-    OPENAI_API_KEY = "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"
+    from config import OPENAI_API_KEY
     os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 
@@ -153,7 +153,7 @@ def create_qa_knowledge_base(gdrive_urls, index_name):
 
 
 def load_knowledge_base(index_name):
-    OPENAI_API_KEY = "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"
+    from config import OPENAI_API_KEY
     os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
     

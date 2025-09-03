@@ -1,6 +1,7 @@
 import random
 import string
 from twilio.rest import Client
+from config import TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN
 
 # General Algo
 # 1.) Requests for user's number on Telegram -> ONLY SHARE CONTACT
@@ -42,16 +43,14 @@ def generate_random_number(length=6):
 
 # Sending SMS to user
 def send_verification_code(phone_number:str, code) -> bool:
-    # Your Twilio Account SID and Auth Token
-    account_sid = 'AC457220702163236cebf7cc88bbe12298'
-    auth_token = 'cfc1b41040343f5cc76ce88190093706'
-    client = Client(account_sid, auth_token)
+    # Your Twilio Account SID and Auth Token from environment variables
+    client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
     try:
         # Sending an SMS
         message = client.messages.create(
             to=phone_number,
-            from_="19042176537",
+            from_="16473603089",
             body=f"Your InfluencerAI verification code is {code}")
 
         print(message.sid)
@@ -59,12 +58,15 @@ def send_verification_code(phone_number:str, code) -> bool:
         return True
     
     except:
+        # Print out error
+        
+        print("Error sending SMS")
         return False
 
 # Example Usage
 # code = generate_random_number()
 # print(code)
-# send_verification_code("16477667841", str(code))
+send_verification_code("16477667841", str("Wagwan"))
 
 
 

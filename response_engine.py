@@ -8,9 +8,10 @@ import random
 from aiogram import Bot, types
 from influencer_data import Influencer
 import vectordb
+from config import OPENAI_API_KEY
 
 
-client = OpenAI(api_key="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")
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 QUESTIONS = [
     "what's your favorite memory from when you were a kid",

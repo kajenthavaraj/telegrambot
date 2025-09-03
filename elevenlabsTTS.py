@@ -16,6 +16,7 @@ import json
 
 import CONSTANTS
 from influencer_data import Influencer
+from config import ELEVENLABS_API_KEY
 
 
 # sudo apt update
@@ -46,7 +47,7 @@ def get_audio_data(
         },
     }
     headers = {
-        "xi-api-key": "827435e41a0abb6bdad7ea666024dd86",
+        "xi-api-key": ELEVENLABS_API_KEY,
         "Content-Type": "application/json",
     }
 

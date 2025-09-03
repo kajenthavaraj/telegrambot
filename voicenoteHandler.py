@@ -23,6 +23,7 @@ import database
 import elevenlabsTTS
 import connectBubble
 from influencer_data import Influencer
+from config import OPENAI_API_KEY
 
 async def download_file(url: str, path: str):
     response = requests.get(url)
@@ -31,7 +32,7 @@ async def download_file(url: str, path: str):
 
 
 def transcribe_audio_file(audio_file_path):
-    client = OpenAI(api_key="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")
+    client = OpenAI(api_key=OPENAI_API_KEY)
 
     with open(audio_file_path, "rb") as audio_file:
         transcript = client.audio.transcriptions.create(model="whisper-1", file=audio_file)
