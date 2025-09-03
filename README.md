@@ -16,6 +16,9 @@ This project uses environment variables to manage API keys and sensitive configu
    - **Twilio Credentials**: Get from https://console.twilio.com/
    - **ElevenLabs API Key**: Get from https://elevenlabs.io/
    - **Telegram Bot Tokens**: Create bots via @BotFather on Telegram
+   - **Stripe API Keys**: Get from https://dashboard.stripe.com/apikeys
+   - **Stripe Webhook Secrets**: Get from https://dashboard.stripe.com/webhooks
+   - **Bubble API Token**: Get from your Bubble.io app settings
    
    ### Configuration Values:
    - **Bubble IDs**: Internal system identifiers
@@ -55,6 +58,14 @@ This project uses environment variables to manage API keys and sensitive configu
 | `VOICE_ID_VERONICA` | ElevenLabs voice ID for Veronica | Yes |
 | `VOICE_ID_JASMINE` | ElevenLabs voice ID for Jasmine | Yes |
 | `VOICE_ID_ANI` | ElevenLabs voice ID for Ani | Yes |
+| `STRIPE_SECRET_KEY_LIVE` | Stripe live secret key | No* |
+| `STRIPE_SECRET_KEY_TEST` | Stripe test secret key | Yes |
+| `STRIPE_WEBHOOK_SECRET_LIVE` | Stripe live webhook endpoint secret | No* |
+| `STRIPE_WEBHOOK_SECRET_TEST` | Stripe test webhook endpoint secret | Yes |
+| `STRIPE_ENV` | Stripe environment ('test' or 'live') | No |
+| `BUBBLE_API_TOKEN` | Bubble.io API token for database access | Yes |
+
+*Required only if using live Stripe environment
 
 ## Configuration Validation
 
@@ -72,4 +83,7 @@ This project has been updated to use environment variables instead of hardcoded 
 - `vectordb.py` - OpenAI API key
 - `influencer_data.py` - Telegram tokens and IDs
 - `main.py` - Configuration validation
+- `paymentstest.py` - Stripe API key
+- `app.py` - Stripe API key, webhook secrets, and Bubble API token
+- `tests/testbot.py` - Stripe API key and Telegram bot token
 - `requirements.txt` - Added python-dotenv dependency

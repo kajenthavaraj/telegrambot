@@ -9,24 +9,23 @@ import logging
 from datetime import datetime
 from CONSTANTS import *
 from influencer_data import Influencer
+from config import get_stripe_api_key, get_stripe_webhook_secret, BUBBLE_API_TOKEN
 
 
 # Flask app setup
 app = Flask(__name__)
 
 # Stripe setup
-stripe.api_key = "sk_test_51IsqDJBo1ZNr3GjAvWVMXtJUnocMO3LsOBaZKJIwtKcAd6regW0OrOgLGrjldgvMmS3K6PW3q4rkTDIbWb3VCUm00072rgmWbe"  
+stripe.api_key = get_stripe_api_key()  
 
-# endpoint_secret = 'whsec_TRS246LG1aQG1tsWzW2D0hYLFZYqWwja'  # this is the live version
-
-endpoint_secret = 'whsec_xtHqX4aEuAlh8kYH8Wcp90sQeENaUS52' # this is the test version
+# Stripe webhook endpoint secret from environment variables
+endpoint_secret = get_stripe_webhook_secret()
 
 
 # Telegram setup
 
 # Bubble setup
 BUBBLE_API_URL = "https://app.tryinfluencerai.com/api/1.1/obj/"  
-BUBBLE_API_TOKEN = "7bfc4e7b2cfbd0475b1ec923a0ea4c99"  
 
 @app.route('/webhook', methods=['POST'])
 def stripe_webhook():

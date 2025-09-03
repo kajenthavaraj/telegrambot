@@ -10,12 +10,12 @@ import stripe
 
 import openai
 
-from config import OPENAI_API_KEY
+from config import OPENAI_API_KEY, get_stripe_api_key, TELEGRAM_BOT_TOKENS
 openai.api_key = OPENAI_API_KEY
-# stripe.api_key = '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'
-stripe.api_key = 'sk_test_51IsqDJBo1ZNr3GjAvWVMXtJUnocMO3LsOBaZKJIwtKcAd6regW0OrOgLGrjldgvMmS3K6PW3q4rkTDIbWb3VCUm00072rgmWbe'
+# Set Stripe API key from environment variables
+stripe.api_key = get_stripe_api_key()
 
-TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
+TOKEN: Final = TELEGRAM_BOT_TOKENS.get('veronica_avluv', "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk")
 BOTUSERNAME: Final = '@veronicaavluvaibot'
 
 '''

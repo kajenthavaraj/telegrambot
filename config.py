@@ -13,6 +13,16 @@ TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
 ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY')
 
+# Stripe API Keys
+STRIPE_SECRET_KEY_LIVE = os.getenv('STRIPE_SECRET_KEY_LIVE')
+STRIPE_SECRET_KEY_TEST = os.getenv('STRIPE_SECRET_KEY_TEST')
+STRIPE_WEBHOOK_SECRET_LIVE = os.getenv('STRIPE_WEBHOOK_SECRET_LIVE')
+STRIPE_WEBHOOK_SECRET_TEST = os.getenv('STRIPE_WEBHOOK_SECRET_TEST')
+STRIPE_ENV = os.getenv('STRIPE_ENV', 'test')  # Default to test environment
+
+# Bubble API
+BUBBLE_API_TOKEN = os.getenv('BUBBLE_API_TOKEN')
+
 # Telegram Bot Tokens
 TELEGRAM_BOT_TOKENS = {
     'veronica_avluv': os.getenv('TELEGRAM_BOT_TOKEN_VERONICA'),
@@ -34,6 +44,20 @@ VOICE_IDS = {
     'ani_blackfox': os.getenv('VOICE_ID_ANI')
 }
 
+def get_stripe_api_key():
+    """Get the appropriate Stripe API key based on environment"""
+    if STRIPE_ENV.lower() == 'live':
+        return STRIPE_SECRET_KEY_LIVE
+    else:
+        return STRIPE_SECRET_KEY_TEST
+
+def get_stripe_webhook_secret():
+    """Get the appropriate Stripe webhook endpoint secret based on environment"""
+    if STRIPE_ENV.lower() == 'live':
+        return STRIPE_WEBHOOK_SECRET_LIVE
+    else:
+        return STRIPE_WEBHOOK_SECRET_TEST
+
 def validate_config():
     """Validate that all required environment variables are set"""
     required_vars = [
@@ -43,7 +67,10 @@ def validate_config():
         'ELEVENLABS_API_KEY',
         'TELEGRAM_BOT_TOKEN_VERONICA',
         'TELEGRAM_BOT_TOKEN_JASMINE',
-        'TELEGRAM_BOT_TOKEN_ANI'
+        'TELEGRAM_BOT_TOKEN_ANI',
+        'STRIPE_SECRET_KEY_TEST',  # At minimum, test key should be available
+        'STRIPE_WEBHOOK_SECRET_TEST',
+        'BUBBLE_API_TOKEN'
     ]
     
     missing_vars = []

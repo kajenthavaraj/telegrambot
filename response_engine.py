@@ -87,8 +87,6 @@ def get_chat_history(chat_history, num, last_or_first="last"):
 
 
 def call_openai_stream_gpt3(messages):
-    # openai.api_key = "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"
-
     ##print("STREAm CALL:" + str(messages))
 
     start = time.time()
@@ -110,8 +108,6 @@ def call_openai_stream_gpt3(messages):
     final_end = time.time()
 
 def call_openai_stream_gpt4_turbo(messages):
-    # openai.api_key = "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"
-
     ##print("STREAm CALL:" + str(messages))
 
     start = time.time()
