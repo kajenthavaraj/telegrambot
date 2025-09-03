@@ -23,7 +23,7 @@
 
 
 # # Example usage:
-# # initialize_credits('veronicaavluvaibot', 'user12345')
+# # initialize_credits('influencerai_bot', 'user12345')
 
 
 def get_minutes_credits(influencer_id, user_id):

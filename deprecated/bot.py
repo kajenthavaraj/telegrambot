@@ -23,11 +23,11 @@ import math
 from CONSTANTS import *
 
 # TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
-# BOT_USERNAME: Final = "@veronicaavluvaibot"
+# BOT_USERNAME: Final = "@influencerai_bot"
 
 # AI_NAME = "VeronicaAI"
 
-# AGENT_ID = "veronica_avluv"
+# AGENT_ID = "veronica"
 
 
 
@@ -918,7 +918,7 @@ def main():
     dp.run_polling(poll_interval=3)
 
 
-# dispatch_intro_call("Michael", "michaell.liao44452@gmail.com", "+16475148397", "veronica_avluv", "1705360220475x278663031583932400", "1705027196160x594032453186675500")
+# dispatch_intro_call("Michael", "michaell.liao44452@gmail.com", "+16475148397", "veronica", "1705360220475x278663031583932400", "1705027196160x594032453186675500")
 
 if __name__ == "__main__":
     main()

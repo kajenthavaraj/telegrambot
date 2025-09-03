@@ -449,10 +449,8 @@ async def balance_command(callback_query: types.CallbackQuery, influencer : Infl
 #                 'quantity': 1,
 #             }],
 #             mode='subscription',
-#             success_url='https://t.me/veronicaavluvaibot?start=subscription_successful',
-#             cancel_url='https://t.me/veronicaavluvaibot?start=subscription_canceled',
-#             # success_url='https://t.me/veronicaavluvaibot?start=subscription_successful',
-#             # cancel_url='https://t.me/veronicaavluvaibot?start=subscription_canceled',
+#             success_url='https://t.me/influencerai_bot?start=subscription_successful',
+#             cancel_url='https://t.me/influencerai_bot?start=subscription_canceled',
 #             metadata={'telegram_user_id': user_id},  # Pass in metadata to identify the user
 #         )
 
@@ -491,8 +489,8 @@ async def balance_command(callback_query: types.CallbackQuery, influencer : Infl
 #             }],
 #             metadata={'telegram_user_id': user_id},
 #             mode='payment',
-#             success_url='https://t.me/veronicaavluvaibot?start=payment_successful',
-#             cancel_url='https://t.me/veronicaavluvaibot?start=payment_canceled',
+#             success_url='https://t.me/influencerai_bot?start=payment_successful',
+#             cancel_url='https://t.me/influencerai_bot?start=payment_canceled',
 #         )
 #         payment_text = '''Please complete your payment:
 

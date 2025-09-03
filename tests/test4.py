@@ -17,7 +17,7 @@ import os
 
 
 
-AGENT_ID = "veronica_avluv"
+AGENT_ID = "veronica"
 
 
 # sudo apt update

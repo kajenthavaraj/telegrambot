@@ -1,7 +1,7 @@
 {
-    "veronica_avluv": {
+    "veronica": {
         "ai_name": "VeronicaAI",
-        "bot_username": "@veronicaavluvaibot",
+        "bot_username": "@influencerai_bot",
         "real_name": "Veronica Avluv",
         "voice_id": "WaE9Pp8WJdD8YhQrF8hq",
         "voice_settings": {},
@@ -19,7 +19,7 @@
             }
         ]
     },
-    "jasmine_larsen": {
+    "jasmine": {
         "ai_name": "JasmineAI",
         "bot_username": "@jasminelarsenbot",
         "real_name": "Jasmine Larsen",
@@ -38,7 +38,7 @@
             }
         ]
     },
-    "ani_blackfox": {
+    "ani": {
         "ai_name": "BlackfoxAI",
         "bot_username": "@blackfoxaibot",
         "real_name": "Ani Blackfox",

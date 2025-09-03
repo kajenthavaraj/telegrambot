@@ -15,8 +15,8 @@ openai.api_key = OPENAI_API_KEY
 # Set Stripe API key from environment variables
 stripe.api_key = get_stripe_api_key()
 
-TOKEN: Final = TELEGRAM_BOT_TOKENS.get('veronica_avluv', "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk")
-BOTUSERNAME: Final = '@veronicaavluvaibot'
+TOKEN: Final = TELEGRAM_BOT_TOKENS.get('veronica', "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk")
+BOTUSERNAME: Final = '@influencerai_bot'
 
 '''
 start - starts the bot
@@ -88,8 +88,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             'quantity': 1,
         }],
         mode='payment',
-        success_url='https://t.me/veronicaavluvaibot?start=payment_successful',
-        cancel_url='https://t.me/veronicaavluvaibot?start=payment_canceled',
+        success_url='https://t.me/influencerai_bot?start=payment_successful',
+        cancel_url='https://t.me/influencerai_bot?start=payment_canceled',
     )
 
 

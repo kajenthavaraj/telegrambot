@@ -25,11 +25,11 @@ import math
 
 
 TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
-BOT_USERNAME: Final = "@veronicaavluvaibot"
+BOT_USERNAME: Final = "@influencerai_bot"
 
 AI_NAME = "VeronicaAI"
 
-AGENT_ID = "veronica_avluv"
+AGENT_ID = "veronica"
 
 bot = Bot(TOKEN)
 

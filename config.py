@@ -25,23 +25,23 @@ BUBBLE_API_TOKEN = os.getenv('BUBBLE_API_TOKEN')
 
 # Telegram Bot Tokens
 TELEGRAM_BOT_TOKENS = {
-    'veronica_avluv': os.getenv('TELEGRAM_BOT_TOKEN_VERONICA'),
-    'jasmine_larsen': os.getenv('TELEGRAM_BOT_TOKEN_JASMINE'),
-    'ani_blackfox': os.getenv('TELEGRAM_BOT_TOKEN_ANI')
+    'veronica': os.getenv('TELEGRAM_BOT_TOKEN_VERONICA'),
+    'jasmine': os.getenv('TELEGRAM_BOT_TOKEN_JASMINE'),
+    'ani': os.getenv('TELEGRAM_BOT_TOKEN_ANI')
 }
 
 # Bubble IDs
 BUBBLE_IDS = {
-    'veronica_avluv': os.getenv('BUBBLE_ID_VERONICA'),
-    'jasmine_larsen': os.getenv('BUBBLE_ID_JASMINE'),
-    'ani_blackfox': os.getenv('BUBBLE_ID_ANI')
+    'veronica': os.getenv('BUBBLE_ID_VERONICA'),
+    'jasmine': os.getenv('BUBBLE_ID_JASMINE'),
+    'ani': os.getenv('BUBBLE_ID_ANI')
 }
 
 # Voice IDs
 VOICE_IDS = {
-    'veronica_avluv': os.getenv('VOICE_ID_VERONICA'),
-    'jasmine_larsen': os.getenv('VOICE_ID_JASMINE'),
-    'ani_blackfox': os.getenv('VOICE_ID_ANI')
+    'veronica': os.getenv('VOICE_ID_VERONICA'),
+    'jasmine': os.getenv('VOICE_ID_JASMINE'),
+    'ani': os.getenv('VOICE_ID_ANI')
 }
 
 def get_stripe_api_key():

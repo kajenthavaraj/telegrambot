@@ -28,7 +28,7 @@ def create_influencer_collection(influencer_id, influencer_name):
     # print(f"Influencer {influencer_name} with ID {influencer_id} has been added to the database.")
 
 # Example usage
-# create_influencer_collection(influencer_id='veronicaavluvaibot', influencer_name='Veronica Avluv')
+# create_influencer_collection(influencer_id='botid', influencer_name='Influencer')
 
 
 def check_user_exists(influencer_id, user_id):
@@ -65,7 +65,7 @@ def add_user_to_influencer_subscription(influencer_id, user_id):
     # print(f"User {user_id} has been added to the subscriptions of influencer {influencer_id}.")
 
 # Example usage
-# add_user_to_influencer_subscription('veronicaavluvaibot', 'user12345')
+# add_user_to_influencer_subscription('botid', 'user12345')
 
 
 
@@ -91,8 +91,8 @@ def add_chat_to_user_history(influencer_id, user_id, role, content):
     # print(f"Added chat message to history for {role} in conversation with user {user_id} under influencer {influencer_id}.")
 
 # Example usage
-# add_chat_to_user_history('veronicaavluvaibot', 'user12345', 'user', 'Hello, how are you?')
-# add_chat_to_user_history('veronicaavluvaibot', 'user12345', 'agent', "I'm good, thanks for asking!")
+# add_chat_to_user_history('botid', 'user12345', 'user', 'Hello, how are you?')
+# add_chat_to_user_history('botid', 'user12345', 'agent', "I'm good, thanks for asking!")
 
 
 
@@ -116,7 +116,7 @@ def get_user_chat_history(influencer_id, user_id):
         return None
 
 # Example usage
-# chat_history = get_user_chat_history('veronicaavluvaibot', 'user12345')
+# chat_history = get_user_chat_history('botid', 'user12345')
 # if(chat_history == None):
 #     print("NO CHAT HISTORY FOR USER")
 # else:
@@ -142,7 +142,7 @@ def get_user_intro_status(influencer_id, user_id):
 
 
 # Example usage
-# store_user_phone_number('veronicaavluvaibot', 'user12345', '6477667841')
+# store_user_phone_number('botid', 'user12345', '6477667841')
 
 
 
@@ -165,7 +165,7 @@ def phone_number_status(influencer_id, user_id):
         return False, None  # Document does not exist
 
 # Example usage:
-# has_phone, phone_number = phone_number_status('veronicaavluvaibot', 'user12345')
+# has_phone, phone_number = phone_number_status('botid', 'user12345')
 # if has_phone:
 #     print(f"User's phone number is {phone_number}.")
 # else:
@@ -215,7 +215,7 @@ def update_verification_status(influencer_id, user_id, status):
     # print(f"Updated verification status to {status} for user {user_id} under influencer {influencer_id}.")
 
 # Example usage:
-# update_verification_status('veronicaavluvaibot', 'user12345', "True")
+# update_verification_status('botid', 'user12345', "True")
 
 
 def get_verification_status(influencer_id, user_id):
@@ -240,7 +240,7 @@ def get_verification_status(influencer_id, user_id):
 
 
 # Example usage:
-# status = get_verification_status('veronicaavluvaibot', 'user12345')
+# status = get_verification_status('botid', 'user12345')
 # print(status)
 
 
@@ -297,7 +297,7 @@ def add_bubble_unique_id(influencer_id, user_id, unique_id):
 
 
 # Example usage:
-# add_bubble_unique_id('veronicaavluvaibot', 'user12345', "aksjdfkasdkjskafjksdf")
+# add_bubble_unique_id('botid', 'user12345', "aksjdfkasdkjskafjksdf")
 
 
 def get_bubble_unique_id(influencer_id, user_id):
@@ -319,7 +319,7 @@ def get_bubble_unique_id(influencer_id, user_id):
         return False  # Document does not exist
 
 # # Example usage:
-# unique_id = get_bubble_unique_id('veronicaavluvaibot', 'user12345')
+# unique_id = get_bubble_unique_id('botid', 'user12345')
 # print(unique_id if unique_id else "No unique ID found for user.")
 
 
@@ -378,7 +378,7 @@ def store_user_email(influencer_id, user_id, email):
 
 
 # Example usage:
-# store_user_email('veronicaavluvaibot', 'user12345', 'kajen@gmail.com')
+# store_user_email('botid', 'user12345', 'kajen@gmail.com')
 
 def user_email_status(influencer_id, user_id):
     
@@ -399,4 +399,4 @@ def user_email_status(influencer_id, user_id):
         return False, None  # Document does not exist
 
 # Example usage:
-# user_email_status('veronicaavluvaibot', 'user12345')
+# user_email_status('botid', 'user12345')
