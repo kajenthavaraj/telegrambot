@@ -1,7 +1,8 @@
 import requests
 import json
+from config import BUBBLE_API_TOKEN
 # Returns Json File of Data for the Data Entry with the Uniuqe ID
-api_key = "7bfc4e7b2cfbd0475b1ec923a0ea4c99"
+api_key = BUBBLE_API_TOKEN
 
 
 
@@ -10,7 +11,6 @@ DATA_URL = "https://app.tryinfluencerai.com/api/1.1/obj/"
 
 
 def get_data(unique_id, data_type):
-    # api_key "cb49dfd6e576e3153fcf8d3b211698b0"
 
     bubble_url = f"{DATA_URL}{data_type}/{unique_id}"
     headers = {"Authorization": f"Bearer {api_key}"}
@@ -26,8 +26,6 @@ def get_data(unique_id, data_type):
         return 404
     
 def get_data_list(data_type, keys, values, constraint_types, cursor = None, limit=None):
-
-    # api_key "cb49dfd6e576e3153fcf8d3b211698b0"
 
     url = f"{DATA_URL}{data_type}"
     if keys != None:
@@ -109,7 +107,6 @@ def get_subscription_id(user_uid, influencer_uid):
 
 # Updates the database with a new value
 def update_database(unique_id, data_type, field_name, new_value, **kwargs):
-    # api_key 'cb49dfd6e576e3153fcf8d3b211698b0'
 
 
     bubble_url = f"{DATA_URL}{data_type}/{unique_id}"
@@ -126,7 +123,6 @@ def update_database(unique_id, data_type, field_name, new_value, **kwargs):
 
 def bulk_create_data(data_type, data):
     # print(data)
-    # api_key 'cb49dfd6e576e3153fcf8d3b211698b0'
     bubble_url = f"{DATA_URL}{data_type}/bulk"
 
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "text/plain"}
@@ -148,7 +144,6 @@ def bulk_create_data(data_type, data):
         raise Exception
 
 def update_data_fields(unique_id, data_type, data):
-    # api_key 'cb49dfd6e576e3153fcf8d3b211698b0'
 
 
     bubble_url = f"{DATA_URL}{data_type}/{unique_id}"
@@ -167,7 +162,6 @@ def update_data_fields(unique_id, data_type, data):
 # Adds a new entry to database
 
 def add_entry(data_type, data):
-    # api_key 'cb49dfd6e576e3153fcf8d3b211698b0'
 
     bubble_url = f"{DATA_URL}{data_type}"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
@@ -208,7 +202,6 @@ def add_entry(data_type, data):
 # new_user_data = {
 #     "first_name": "33ssd",
 #     "email": "ksss@example.com",
-#     # "password": "securepassword"  # Be mindful of security and privacy concerns when handling passwords
 #     # Add any other fields you have for your User data type
 # }
 

@@ -24,7 +24,6 @@ import imagesdb
 import math
 
 
-TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
 BOT_USERNAME: Final = "@influencerai_bot"
 
 AI_NAME = "VeronicaAI"
@@ -33,7 +32,6 @@ AGENT_ID = "veronica"
 
 bot = Bot(TOKEN)
 
-# stripe.api_key = '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'
 
 ##### Commands - need to add to bot father #####
 '''

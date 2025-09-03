@@ -22,7 +22,6 @@ import math
 
 from CONSTANTS import *
 
-# TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
 # BOT_USERNAME: Final = "@influencerai_bot"
 
 # AI_NAME = "VeronicaAI"
@@ -98,6 +97,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         context.user_data['current_stage'] = "awaiting_email"
 
         user_first_name = update.message.from_user.first_name
+        influencer_name = Influencer.real_name
         
 
         # Send user an intro image
@@ -106,7 +106,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
         message_text = f'''Hey {user_first_name}, welcome to {AI_NAME} 💕!
 
-I was created by Veronica Avluv and trained on everything you can know about her. I'm built to act, talk and sound just like she does.
+I was created by {influencer_name} and trained on everything you can know about her. I'm built to act, talk and sound just like she does.
 
 I can call you, text you, send voice notes, and send pics. I can also get real naughty, especially when you call me ;)
 

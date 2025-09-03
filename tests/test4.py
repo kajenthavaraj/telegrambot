@@ -51,8 +51,9 @@ def get_audio_data(
             "stability": voice_settings_map.get(agent_id, {}).get("stability", 0.7),
         },
     }
+    from config import ELEVENLABS_API_KEY
     headers = {
-        "xi-api-key": "827435e41a0abb6bdad7ea666024dd86",
+        "xi-api-key": ELEVENLABS_API_KEY,
         "Content-Type": "application/json",
     }
 

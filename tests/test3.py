@@ -8,13 +8,15 @@ import json
 
 from openai import OpenAI
 
-client = OpenAI(api_key="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")
+from config import OPENAI_API_KEY
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 import database
 import loginuser
 
 
-TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
+from config import TELEGRAM_BOT_TOKENS
+TOKEN: Final = TELEGRAM_BOT_TOKENS.get('veronica', "FALLBACK_TOKEN")
 BOT_USERNAME: Final = '@influencerai_bot'
 
 

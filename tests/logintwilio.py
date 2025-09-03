@@ -1,13 +1,12 @@
 # from twilio.rest import Client
 
 # def send_verification_code(phone_number: str) -> bool:
-#     # Your Twilio Account SID and Auth Token
-#     account_sid = 'AC457220702163236cebf7cc88bbe12298'
-#     auth_token = 'cfc1b41040343f5cc76ce88190093706'
-#     client = Client(account_sid, auth_token)
+#     # Twilio credentials loaded from environment variables
+#     from config import TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN
+#     client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 #     # Your Verify Service SID
-#     verify_service_sid = 'VA0e796368adda7eec951ba7debeac64df'
+#     verify_service_sid = 'YOUR_VERIFY_SERVICE_SID'
 
 #     try:
 #         # Sending a verification code using the Verify service
@@ -28,11 +27,11 @@
 
 
 # def check_verification_code(phone_number: str, code: str) -> bool:
-#     account_sid = 'AC457220702163236cebf7cc88bbe12298'
-#     auth_token = 'cfc1b41040343f5cc76ce88190093706'
-#     client = Client(account_sid, auth_token)
+#     # Twilio credentials loaded from environment variables
+#     from config import TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN
+#     client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
-#     verify_service_sid = 'VA0e796368adda7eec951ba7debeac64df'
+#     verify_service_sid = 'YOUR_VERIFY_SERVICE_SID'
 
 #     try:
 #         verification_check = client.verify.services(verify_service_sid) \

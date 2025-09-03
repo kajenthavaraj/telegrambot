@@ -1,12 +1,13 @@
 
 from openai import OpenAI
+from config import OPENAI_API_KEY
 
-client = OpenAI(api_key="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")
+client = OpenAI(api_key=OPENAI_API_KEY)
 import time
 
 
 def call_openai_stream_gpt4_turbo(messages):
-    # openai.api_key = "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"
+    # OpenAI API key now loaded from environment variables
 
     ##print("STREAm CALL:" + str(messages))
 

@@ -8,13 +8,11 @@ import json
 
 from openai import OpenAI
 
-client = OpenAI(api_key="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")
 
 import database
 import loginuser
 
 
-TOKEN: Final = "6736028246:AAGbbsnfYsBJ1y-Fo0jO4j0c9WBuLxGDFKk"
 BOT_USERNAME: Final = '@influencerai_bot'
 
 
@@ -205,7 +203,7 @@ def last_20_chat_history(chat_history):
 ################################################################
 
 def call_openai_stream_gpt3(messages):
-    # openai.api_key = "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"
+    # OpenAI API key now loaded from environment variables
 
     ##print("STREAm CALL:" + str(messages))
 
@@ -228,7 +226,7 @@ def call_openai_stream_gpt3(messages):
     final_end = time.time()
 
 def call_openai_stream_gpt4_turbo(messages):
-    # openai.api_key = "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"
+    # OpenAI API key now loaded from environment variables
 
     ##print("STREAm CALL:" + str(messages))
 

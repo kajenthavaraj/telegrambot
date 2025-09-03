@@ -3,11 +3,12 @@ import time
 from telegram import Update
 import re
 import random
+import os
 
 import vectordb
 
 
-client = OpenAI(api_key="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")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 QUESTIONS = [
     "what's your favorite memory from when you were a kid",
@@ -84,7 +85,6 @@ def get_chat_history(chat_history, num, last_or_first="last"):
 
 
 def call_openai_stream_gpt3(messages):
-    # openai.api_key = "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"
 
     ##print("STREAm CALL:" + str(messages))
 
@@ -108,7 +108,6 @@ def call_openai_stream_gpt3(messages):
 
 
 def call_openai_stream_gpt4_turbo(messages):
-    # openai.api_key = "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"
 
     ##print("STREAm CALL:" + str(messages))
     
